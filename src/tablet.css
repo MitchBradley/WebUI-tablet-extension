@@ -1,0 +1,158 @@
+.cols-tablet {
+  width: 100%;
+  display:flex;
+  flex-wrap: nowrap;
+}
+[class~=col-], .col-tablet { 
+  width: 100%;
+  padding-left: 0.2rem;
+}
+.disabled {
+  cursor: not-allowed;
+}
+.btn-tablet:hover {
+  background: #e0e0e0
+}
+.btn-tablet:active {
+  background: #d0f0d0
+}
+.btn-tablet:disabled {
+  background: #f0f0f0;
+  color: black;
+}
+.btn-tablet {
+  width: 100%;
+  margin: 0.1rem;
+  background: white;
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  display:inline-block;
+  font-size:1.3rem;
+  height: 2.4rem;
+  line-height: 1.2rem;
+  outline: none;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+#tablettab {
+  height: 100%;
+  padding: 5px;
+  font-size: 1.1rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.messages {
+  width: 100%;
+  height: 45%;
+  max-height: 100%;
+  overflow-x: auto;
+  overflow-y: scroll;
+  padding: 2px;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
+  border-color: rgb(118, 118, 118);
+  text-align:left;
+  font-size: 1.0rem;
+}
+#messages {
+  background-color: lightyellow;
+}
+#gcode-states {
+  background-color: azure;
+  height: fit-content;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align:left;
+}
+#gcode {
+  background-color: lavenderblush;
+  width: 100%;
+}
+.axis-label {
+  font-size: 1.6rem;
+}
+#axis-position {
+  background-color: azure;
+  overflow: hidden;
+  text-align: center;
+}
+.area {
+  padding-top: 12px;
+  padding-bottom: 8px;
+  padding-right: 8px;
+}
+.area2 {
+  padding-bottom: 8px;
+  padding-right: 8px;
+}
+#mdifiles {
+  background-color: lavenderblush;
+}
+#setAxis {
+  background-color: azure;
+}
+#control-pad {
+  background-color: lightyellow;
+}
+.mdi-entry {
+  width:100%;
+  height:100%;
+  border-radius: 0.4rem;
+  border-width: 1px;
+}
+.mposition {
+  padding-top: 0.2rem;
+  font-size: 1.4rem;
+  color: #606060;
+}
+.info-button {
+  padding-top: 0.1rem;
+  font-size: 1.4rem;
+}
+.pos-name {
+  font-size: 1.7rem;
+}
+#jog-distance {
+  padding-top: 0;
+}
+.btn-lg {
+  width:100%;
+  border-width: 1px;
+  border-radius: 5px;
+}
+#nav-panel {
+  padding-top: 0.2rem;
+  font-size: 1.6rem;
+}
+#expand-button {
+  position:absolute;
+  top:0;
+  right:0;
+  z-index:1;
+  width:2rem;
+  height:2rem;
+  margin: 5px;
+}
+#messagepane {
+  height: 100%;
+}
+#previewpane {
+  position: relative;
+}
+#toolpath {
+  height:100%;
+  width:100%;
+  z-index:0;
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.3rem;
+}
+#filename {
+  position:absolute;
+  top:0;
+  left:0;
+  z-index:1;
+  height:4rem;
+  margin: 5px;
+}
