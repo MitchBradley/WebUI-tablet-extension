@@ -1,6 +1,21 @@
 name: Tablet Continuous Integration
 on: [push]
 jobs:
+  release-on-push:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - id: release
+        uses: rymndhng/release-on-push-action@master
+        with:
+          bump_version_scheme: minor
+          use_github_release_notes: true
+       - name: Check Output Parameters
+          echo "Got tag name ${{ steps.release.outputs.tag_name }}"
+          echo "Got release version ${{ steps.release.outputs.version }}"
+          echo "Upload release artifacts to ${{ steps.release.outputs.upload_url }}"
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -12,3 +27,10 @@ jobs:
         with:
           name: tablet.html.gz
           path: build/tablet.html.gz
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ streps.release.event.outputs.tag.name }}
+          files: |
+            build/target.html.gz
+            draft: True
