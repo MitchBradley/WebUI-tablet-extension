@@ -22,13 +22,8 @@ jobs:
           echo "Upload release artifacts to ${{ steps.release.outputs.upload_url }}"
       - name: Minify and package
         run: ./minify.sh
-      - name: Upload minified package
-        uses: actions/upload-artifact@v4
-        with:
-          name: tablet.html.gz
-          path: build/tablet.html.gz
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.release.outputs.tag_name }}
-          files: build/target.html.gz
+          files: build/tablet.html.gz
