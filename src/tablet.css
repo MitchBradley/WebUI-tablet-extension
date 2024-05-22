@@ -69,6 +69,7 @@
 #gcode {
   background-color: lavenderblush;
   width: 100%;
+  resize: none;
 }
 .axis-label {
   font-size: 1.6rem;
