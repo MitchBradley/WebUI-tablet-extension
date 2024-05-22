@@ -1,5 +1,8 @@
 name: Tablet Continuous Integration
 on: [push]
+permissions:
+  contents: write
+  pull-requests: read
 jobs:
   release-on-push:
     runs-on: ubuntu-latest
