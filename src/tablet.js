@@ -1663,7 +1663,7 @@ var transformCanvas = function() {
         imageHeight = 1;
     }
     var shrink = 0.90;
-    inset = 5;
+    inset = 30;
     var scaleX = (canvas.width - inset*2) / imageWidth;
     var scaleY = (canvas.height - inset*2) / imageHeight;
     var minScale = Math.min(scaleX, scaleY);
