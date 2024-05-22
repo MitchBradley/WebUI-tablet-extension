@@ -2024,10 +2024,11 @@ ToolpathDisplayer.prototype.cycleCameraAngle = function(gcode, modal, position) 
 
     displayer.showToolpath(gcode, modal, position);
 }
-  function updateGcodeViewerAngle()  {
-      const gcode = id('gcode').value;
-      displayer.cycleCameraAngle(gcode, modal, arrayToXYZ(WPOS));
-  }
+
+function updateGcodeViewerAngle()  {
+    const gcode = id('gcode').value;
+    displayer.cycleCameraAngle(gcode, modal, arrayToXYZ(WPOS));
+}
 
   // End toolpath-displayer.js
   var displayer = new ToolpathDisplayer();
@@ -2038,6 +2039,10 @@ ToolpathDisplayer.prototype.cycleCameraAngle = function(gcode, modal, position) 
   function sendMessage(msg){ 
       window.parent.postMessage(msg, '*')
   }
+
+function askCapabilities() {
+    sendMessage({type:'capabilities', target:'webui', id:'tablet'})
+}
 
   function sendCommand(cmd) {
       console.log(cmd)
@@ -2663,8 +2668,8 @@ ToolpathDisplayer.prototype.cycleCameraAngle = function(gcode, modal, position) 
 
   function tabletInit() {
       initDisplayer()
-      refreshFiles()
-      requestModes();
+      requestModes()
+      askCapabilities()
   }
 
   function arrayToXYZ(a) {
@@ -3020,42 +3025,60 @@ ToolpathDisplayer.prototype.cycleCameraAngle = function(gcode, modal, position) 
       sendMessage({type:'download', target:'webui', id:'tablet', url:name});
   }
 
+var fwname
+
+function files_url() {
+    return fwname === 'FluidNC' ? 'upload': 'sdfiles';
+}
+
+function setupFluidNC() {
+    sendCommand('$Report/Interval=300')
+    // Get bounding box
+}
+
   function files_refreshFiles(dir) {
-      sendMessage({type:'query', target:'webui', id:'tablet', url:'sdfiles', args:{action:'list', path:dir}});
+      sendMessage({type:'query', target:'webui', id:'tablet', url:files_url(), args:{action:'list', path:dir}});
   }
 
-  function processMessage(eventMsg){
-      // console.log(eventMsg)
-      if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=="tablet")){
-          switch (eventMsg.data.type) {
-          case "query":
-              const con = eventMsg.data.content
-              if (con.status=="success"){
-                  const fileslist = JSON.parse(con.response);
-                  populateTabletFileSelector(fileslist.files, files_currentPath);
-              } else {
-                  //TBD
-              }
-              break
-          case "stream":
-              // console.log("stream " + eventMsg.data.content);
-              grblHandleMessage(eventMsg.data.content)
-              // tabletShowMessage(eventMsg.data.content);
-              break
-          case "download":
-              const content = eventMsg.data.content
-              if (content.status=="success"){
-                  var reader = new FileReader();
-                  reader.onload = function() {
-                      showGCode(reader.result)
-                  }
-                  reader.readAsText(content.response);
-              } else {
-              }
-              break
-          }
-      }
-  }
+function processMessage(eventMsg){
+    // console.log(eventMsg)
+    if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=="tablet")){
+        switch (eventMsg.data.type) {
+            case "capabilities":
+                fwname = eventMsg.data.content.response.FWTarget;
+                refreshFiles()
+                if (fwname == 'FluidNC') {
+                    setupFluidNC()
+                }
+               break
+            case "query":
+                const con = eventMsg.data.content
+                if (con.status=="success"){
+                    const fileslist = JSON.parse(con.response);
+                    populateTabletFileSelector(fileslist.files, files_currentPath);
+                } else {
+                    //TBD
+                }
+                break
+            case "stream":
+                // console.log("stream " + eventMsg.data.content);
+                grblHandleMessage(eventMsg.data.content)
+                // tabletShowMessage(eventMsg.data.content);
+                break
+            case "download":
+                const content = eventMsg.data.content
+                if (content.status=="success"){
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        showGCode(reader.result)
+                    }
+                    reader.readAsText(content.response);
+                } else {
+                }
+                break
+        }
+    }
+}
 
   function dro_click(event) {
       console.log("DRO " + event.target.value)
@@ -3072,7 +3095,7 @@ ToolpathDisplayer.prototype.cycleCameraAngle = function(gcode, modal, position) 
           const reader = new FileReader();
           reader.onload = function (e) {
               const pathname = files[0].name;
-              sendMessage({type:'upload', target:"webui", id:'tablet', url:"sdfiles", content:e.target.result,size:e.target.result.byteLength, path:"/", filename:pathname});
+              sendMessage({type:'upload', target:"webui", id:'tablet', url:files_url(), content:e.target.result,size:e.target.result.byteLength, path:"/", filename:pathname});
               id("uploadBtn").value="";
               refreshFiles()
           }
