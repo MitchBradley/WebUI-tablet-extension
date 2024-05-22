@@ -15,7 +15,6 @@ jobs:
         with:
           bump_version_scheme: minor
           use_github_release_notes: true
-          dry_run: true
       - name: Check Output Parameters
         run: |
           echo "Got tag name ${{ steps.release.outputs.tag_name }}"
