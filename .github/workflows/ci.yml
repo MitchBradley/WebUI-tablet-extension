@@ -6,11 +6,12 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - id: release
-        uses: rymndhng/release-on-push-action@master
+      - uses: actions/checkout@v3
+      - uses: rymndhng/release-on-push-action@master
         with:
           bump_version_scheme: minor
           use_github_release_notes: true
+          dry_run: true
        - name: Check Output Parameters
           echo "Got tag name ${{ steps.release.outputs.tag_name }}"
           echo "Got release version ${{ steps.release.outputs.version }}"
@@ -19,7 +20,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       - name: Minify and package
         run: ./minify.sh
       - name: Upload minified package
