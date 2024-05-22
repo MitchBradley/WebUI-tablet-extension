@@ -1,7 +1,10 @@
 name: Tablet Continuous Integration
 on: [push]
+permissions:
+  contents: write
+  pull-requests: read
 jobs:
-  release-on-push:
+  build:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -16,10 +19,6 @@ jobs:
           echo "Got tag name ${{ steps.release.outputs.tag_name }}"
           echo "Got release version ${{ steps.release.outputs.version }}"
           echo "Upload release artifacts to ${{ steps.release.outputs.upload_url }}"
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
       - name: Minify and package
         run: ./minify.sh
       - name: Upload minified package
