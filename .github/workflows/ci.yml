@@ -30,7 +30,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.release.outputs.tag.name }}
+          tag_name: ${{ steps.release.outputs.tag_name }}
           files: |
             build/target.html.gz
             draft: True
