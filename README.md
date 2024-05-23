@@ -1,6 +1,12 @@
 # WebUI-tablet-extension
 Plugin for ESP3D WebUI implementing a user interface optimized for tablets
 
+![Screenshot](doc/screenshot.png)
+
+> [!IMPORTANT]
+> Software like this takes a lot of time to develop, support and maintain.  If you use it, please consider contributing to the developers.  Since this code depends on a larger project, I ask that donations go to the creator of that other project 
+(https://github.com/luc-github/ESP3D-WEBUI?tab=readme-ov-file#become-a-sponsor-or-a-supporter)
+
 ## Scope
 
 This is an addition to [ESP32-WEBUI](https://github.com/luc-github/ESP3D-WEBUI.git) version 3 that presents an additional user interface for CNC use.  The new UI works well with
@@ -14,6 +20,26 @@ frequently-used functions.
 * A GCode visualizer and file content display helps with job setup, letting you confirm that the job is the one you want, with the tool in the right position.
 
 It is intended for use with CNC controllers that are compatible with GRBL.  It lacks many capabilities that are commonly needed for 3D printing.
+
+## Usage
+
+Most of the controls are self explanatory.  The screen is divided into functional areas:
+
+![Areas](doc/controls.png)
+
+Clicking on a DRO (axis position) brings up a numeric keypad where you can enter and number and then either go to that coordinate or set the axis position to it.
+
+![Numpad](doc/numpad.png)
+
+A few auxiliary functions are behind the menu:
+
+![Menu](doc/menu.png)
+
+To run a job, select the file from the file selector dropdown menu.  Its GCode will show in the lower left box and the toolpath will be displayed in the lower right box.  You can inspect the tool position relative to the toolpath to ensure that your setup is correct before hitting the (now green) Start button to run the program.  Clicking in the visualizer will cycle between several viewpoints, some with machine envelope boundaries shown.
+
+When a job is running, the visualizer will expand, hiding the controls that are not usable during Run state.  Clicking on the [] button will shrink or expand the visualizer.
+
+The two text entry boxes left of "MDI" buttons each let you enter a line of text to send to the controller.  There are two of them which is often enough for simple manual jobs like going back and forth.
 
 ## History
 
