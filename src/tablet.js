@@ -539,7 +539,6 @@ function grblHandleMessage(msg) {
     }
     if (msg.startsWith('[GC:')) {
         grblGetModal(msg);
-        console.log(msg);
         return;
     }
 
@@ -570,7 +569,6 @@ function grblHandleMessage(msg) {
         return;
     }
     if (msg.startsWith('Grbl ')) {
-        console.log('Reset detected');
         return;
     }
 }
@@ -1696,7 +1694,6 @@ var Toolpath = function () {
 
 function getVersion() {
     var version = id('version').innerText
-    console.log("Version", version)
     return version
 }
 
@@ -2387,7 +2384,6 @@ function jogTo (axisAndDistance) {
         feedrate = feedrate.toFixed(2);
     }
 
-console.log('jogTo')
     var cmd;
     cmd = '$J=G91F' + feedrate + axisAndDistance + '\n';
     // tabletShowMessage("JogTo " + cmd);
@@ -2419,7 +2415,6 @@ var timeout_id = 0,
 
 var longone = false;
 function long_jog(target) {
-    console.log('long jog')
     longone = true;
     var distance = 1000;
     var axisAndDirection = target.value
@@ -2551,7 +2546,6 @@ function getAxisValueFailure() {
 }
 
 function tabletShowMessage(msg) {
-    console.log(msg)
     if (msg ==  '' || msg.startsWith('<') || msg.startsWith('ok') || msg.startsWith('\n') || msg.startsWith('\r')) {
         return;
     }
@@ -3254,7 +3248,6 @@ function setBottomHeight() {
         return;
     }
     var residue = bodyHeight() - navbarHeight() - controlHeight();
-    // console.log("Height " + bodyHeight() + " " + navbarHeight() + " " + controlHeight())
 
     var tStyle = getComputedStyle(id('tablettab'))
     var tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom);
@@ -3299,7 +3292,6 @@ function files_refreshFiles(dir) {
 }
 
 function processMessage(eventMsg){
-    // console.log(eventMsg)
     if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=="tablet")){
         switch (eventMsg.data.type) {
             case "capabilities":
@@ -3319,7 +3311,6 @@ function processMessage(eventMsg){
                 }
                 break
             case "stream":
-                // console.log("stream " + eventMsg.data.content);
                 grblHandleMessage(eventMsg.data.content)
                 // tabletShowMessage(eventMsg.data.content);
                 break
@@ -3717,11 +3708,9 @@ document.onreadystatechange = event => {
         case "loading":
             break
         case "interactive":
-            console.log("Loading App")
             loadApp()
             break
         case "complete":
-            console.log("Adding Listeners")
             addListeners()
             break
     }
