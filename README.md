@@ -28,22 +28,29 @@ You need a system that is already running ESP3D-WEBUI version 3.
 1. Go to the [Releases page](https://github.com/MitchBradley/WebUI-tablet-extension/releases) and download the **tablet.html.gz** file from the latest release.
 
 2. Upload tablet.html.gz to the Flash filesystem
+
 ![Upload](doc/upload.png)
 
-3. In WebUI, click on the Interface tab, then click on Settings
+4. In WebUI, click on the Interface tab, then click on Settings
+
 ![Interface](doc/interface.png)
+
 ![Settings](doc/settings.png)
 
-4. Scroll down to find the **Extra content** panel then click on **Add Content**
+5. Scroll down to find the **Extra content** panel then click on **Add Content**
+
 ![Add Content](doc/addcontent.png)
 
-5. Fill out the form as follows
+6. Fill out the form as follows
+
 ![Fields](doc/fields.png)
 
-6. Scroll all the way down to the bottom of the page and hit Save
+7. Scroll all the way down to the bottom of the page and hit Save
+
 ![Save](doc/save.png)
 
-7. Now the top tab bar should have an **Extra pages** dropdown with a **Tablet** entry.  Click that to go to the Tablet UI
+8. Now the top tab bar should have an **Extra pages** dropdown with a **Tablet** entry.  Click that to go to the Tablet UI
+
 ![Tablet](doc/extrapages.png)
 
 ## Usage
