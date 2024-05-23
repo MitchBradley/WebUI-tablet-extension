@@ -19,7 +19,19 @@ frequently-used functions.
 * Color coding makes it easier to see the run state at a glance
 * A GCode visualizer and file content display helps with job setup, letting you confirm that the job is the one you want, with the tool in the right position.
 
-It is intended for use with CNC controllers that are compatible with GRBL.  It lacks many capabilities that are commonly needed for 3D printing.
+It is intended for use with CNC controllers that are compatible with GRBL.  Most of the testing is done with [FluidNC](https://github.com/bdring/FluidNC). It lacks many capabilities that are commonly needed for 3D printing.
+
+## Installation
+
+You need a system that is already running ESP3D-WEBUI version 3.
+
+1. Go to the [Releases page](https://github.com/MitchBradley/WebUI-tablet-extension/releases) and download the **tablet.html.gz** file from the latest release.
+2. Upload tablet.html.gz to the Flash filesystem ![Upload](doc/upload.png)
+3. In WebUI, click on the Interface tab, then click on Settings ![Interface](doc/interface.png) ![Settings](doc/settings.png)
+4. Scroll down to find the **Extra content** panel then click on **Add Content** ![Add Content](doc/addcontent.png)
+5. Fill out the form as follows ![Fields](doc/fields.png)
+6. Scroll all the way down to the bottom of the page and hit Save ![Save](save.png)
+7. Now the top tab bar should have an **Extra pages** dropdown with a **Tablet** entry.  Click that to go to the Tablet UI ![Tablet](doc/extrapages.png)
 
 ## Usage
 
