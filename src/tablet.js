@@ -2699,6 +2699,7 @@ function showGrblState() {
     if (!grblstate) {
         return;
     }
+    updateModal()
     var stateName = grblstate.stateName;
 
     // Unit conversion factor - depends on both $13 setting and parser units
