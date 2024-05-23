@@ -444,29 +444,30 @@ function stopGCode() {
     sendRealtimeCmd(0x18); // '~'
 }
 
+var grblstate
 function grblProcessStatus(response) {
-    var grbl = parseGrblStatus(response);
+    grblstate = parseGrblStatus(response);
 
     // Record persistent values of data
-    if (grbl.wco) {
-        WCO = grbl.wco;
+    if (grblstate.wco) {
+        WCO = grblstate.wco;
     }
-    if (grbl.ovr) {
-        OVR = grbl.ovr;
+    if (grblstate.ovr) {
+        OVR = grblstate.ovr;
     }
-    if (grbl.mpos) {
-        MPOS = grbl.mpos;
+    if (grblstate.mpos) {
+        MPOS = grblstate.mpos;
         if (WCO) {
-            WPOS = grbl.mpos.map( function(v,index) { return v - WCO[index]; } );
+            WPOS = grblstate.mpos.map( function(v,index) { return v - WCO[index]; } );
         }
-    } else if (grbl.wpos) {
-        WPOS = grbl.wpos;
+    } else if (grblstate.wpos) {
+        WPOS = grblstate.wpos;
         if (WCO) {
-            MPOS = grbl.wpos.map( function(v,index) { return v + WCO[index]; } );
+            MPOS = grblstate.wpos.map( function(v,index) { return v + WCO[index]; } );
         }
     }
 
-    tabletGrblState(grbl, response);
+    showGrblState();
 }
 
 function grblGetProbeResult(response) {
@@ -526,7 +527,7 @@ function grblGetModal(msg) {
             }
         }
     });
-    tabletUpdateModal();
+    showGrblState()
 }
 
 function grblHandleMessage(msg) {
@@ -2673,7 +2674,7 @@ function stopAndRecover() {
 
 var oldCannotClick = null;
 
-function tabletUpdateModal() {
+function updateModal() {
     var newUnits = modal.units == 'G21' ? 'mm' : 'Inch';
     if (getText('units') != newUnits) {
         setText('units', newUnits);
@@ -2697,15 +2698,20 @@ function tabletUpdateModal() {
 
 }
 
-function tabletGrblState(grbl, response) {
-    // tabletShowResponse(response)
-    var stateName = grbl.stateName;
+function updateDRO() {
+}
+
+function showGrblState() {
+    if (!grblstate) {
+        return;
+    }
+    var stateName = grblstate.stateName;
 
     // Unit conversion factor - depends on both $13 setting and parser units
     var factor = 1.0;
 
-    //  spindleSpeed = grbl.spindleSpeed;
-    //  spindleDirection = grbl.spindle;
+    //  spindleSpeed = grblstate.spindleSpeed;
+    //  spindleDirection = grblstate.spindle;
     //
     //  feedOverride = OVR.feed/100.0;
     //  rapidOverride = OVR.rapid/100.0;
@@ -2737,8 +2743,6 @@ function tabletGrblState(grbl, response) {
     }
     oldCannotClick = cannotClick;
 
-    tabletUpdateModal();
-
     switch (stateName) {
         case 'Sleep':
         case 'Alarm':
@@ -2764,8 +2768,8 @@ function tabletGrblState(grbl, response) {
             break;
     }
 
-    if (grbl.spindleDirection) {
-        switch (grbl.spindleDirection) {
+    if (grblstate.spindleDirection) {
+        switch (grblstate.spindleDirection) {
             case 'M3': spindleDirection = 'CW'; break;
             case 'M4': spindleDirection = 'CCW'; break;
             case 'M5': spindleDirection = 'Off'; break;
@@ -2774,7 +2778,7 @@ function tabletGrblState(grbl, response) {
     }
     setText('spindle-direction', spindleDirection);
 
-    spindleSpeed = grbl.spindleSpeed ? Number(grbl.spindleSpeed) : '';
+    spindleSpeed = grblstate.spindleSpeed ? Number(grblstate.spindleSpeed) : '';
     setText('spindle-speed', spindleSpeed);
 
     var now = new Date();
@@ -2798,8 +2802,8 @@ function tabletGrblState(grbl, response) {
     var stateText = "";
     if (stateName == 'Run') {
         var rateNumber = modal.units == 'G21'
-	               ? Number(grbl.feedrate).toFixed(0)
-	               : Number(grbl.feedrate/25.4).toFixed(2);
+	               ? Number(grblstate.feedrate).toFixed(0)
+	               : Number(grblstate.feedrate/25.4).toFixed(2);
 
 	var rateText = rateNumber +
                (modal.units == 'G21' ? ' mm/min' : ' in/min');
@@ -2811,10 +2815,10 @@ function tabletGrblState(grbl, response) {
     }
     setText('active-state', stateText);
 
-    if (grbl.lineNumber && (stateName == 'Run' || stateName == 'Hold' || stateName == 'Stop')) {
-        setText('line', grbl.lineNumber);
+    if (grblstate.lineNumber && (stateName == 'Run' || stateName == 'Hold' || stateName == 'Stop')) {
+        setText('line', grblstate.lineNumber);
         if (gCodeDisplayable) {
-            scrollToLine(grbl.lineNumber);
+            scrollToLine(grblstate.lineNumber);
         }
     }
     if (gCodeDisplayable) {
@@ -3403,8 +3407,8 @@ function input(id, cssclass, inptype, placeholder, onchange, content) {
     if (typeof onchange != 'undefined') {
         el.onchange = onchange
     }
-    // el.focus = inputFocused
-    // el.blur = inputBlurred
+    el.onfocus = inputFocused
+    el.onblur = inputBlurred
     return el
 }
 function select(id, cssclass, onchange, content) {
@@ -3494,7 +3498,7 @@ function axis_zeroing(naxes) {
     }
     return div('setAxis', 'area2 axis-position',
                columns('', '', [
-                   col(1, button('units', 'btn-tablet btn-units', 'mm', toggleUnits)),
+                   col(1, button('units', 'btn-tablet btn-units', 'mm', 'Switch between mm and Inch modes', toggleUnits)),
                    col(11, columns('', '', elements))
                ])
     )
