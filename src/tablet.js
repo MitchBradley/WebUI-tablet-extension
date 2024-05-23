@@ -1,3 +1,248 @@
+const n_axes = 4
+
+// From numpad.js
+var numpad = {
+  // (A) CREATE NUMPAD HTML
+  hwrap: null, // numpad wrapper container
+  hpad: null, // numpad itself
+  hdisplay: null, // number display
+  hbwrap: null, // buttons wrapper
+  hbuttons: {}, // individual buttons
+  init: function(){
+    // (A1) WRAPPER
+    numpad.hwrap = document.createElement("div");
+    numpad.hwrap.id = "numWrap";
+
+
+    // (A2) ENTIRE NUMPAD ITSELF
+    numpad.hpad = document.createElement("div");
+    numpad.hpad.id = "numPad";
+    numpad.hwrap.appendChild(numpad.hpad);
+    numpad.hpad.tabindex = "0";
+    numpad.hpad.contentEditable = false;
+    numpad.hpad.addEventListener("keydown", numpad.keypr);
+
+    // (A3) DISPLAY
+    numpad.hdisplay = document.createElement("input");
+    numpad.hdisplay.id = "numDisplay";
+    numpad.hdisplay.type = "text";
+    numpad.hdisplay.disabled = true;
+    numpad.hdisplay.value = "0";
+    numpad.hpad.appendChild(numpad.hdisplay);
+
+    // (A4) NUMBER BUTTONS
+    numpad.hbwrap = document.createElement("div");
+    numpad.hbwrap.id = "numBWrap";
+    numpad.hpad.appendChild(numpad.hbwrap);
+
+    // (A5) BUTTONS
+    var buttonator = function (txt, css, fn) {
+      var button = document.createElement("div");
+      button.innerHTML = txt;
+      button.classList.add(css);
+      button.addEventListener("click", fn);
+      numpad.hbwrap.appendChild(button);
+      numpad.hbuttons[txt] = button;
+    };
+
+    var spacer = function() {
+      buttonator("", "spacer", null);
+    }
+
+    // 7 8 9 _ Goto
+    for (var i=7; i<=9; i++) { buttonator(i, "num", numpad.digit); }
+    buttonator("&#10502;", "del", numpad.delete);
+    spacer();
+    buttonator("Goto", "goto", numpad.gotoCoordinate);
+
+    // 4 5 6 C _ _
+    for (var i=4; i<=6; i++) { buttonator(i, "num", numpad.digit); }
+    buttonator("C", "clr", numpad.reset);
+    spacer();
+    spacer();
+
+    // 1 2 3 +- Set
+    for (var i=1; i<=3; i++) { buttonator(i, "num", numpad.digit); }
+    buttonator("+-", "num", numpad.toggleSign);
+    buttonator("Set", "set", numpad.setCoordinate);
+
+    // 0 . Get Cancel
+    buttonator(0, "zero", numpad.digit);
+    buttonator(".", "dot", numpad.dot);
+    buttonator("Get", "get", numpad.recall);
+    buttonator("Cancel", "cxwide", numpad.hide);
+
+
+    // (A6) ATTACH NUMPAD TO HTML BODY
+    document.body.appendChild(numpad.hwrap);
+  },
+
+    // (B) BUTTON ACTIONS
+    // (B1) CURRENTLY SELECTED FIELD + MAX LIMIT
+    nowTarget: null, // Current selected input field
+    nowMax: 0, // Current max allowed digits
+    
+    keypr: function(event) {
+        event.preventDefault();
+        switch(event.key) {
+            case "Escape":
+            case "q":
+                numpad.hide();
+                break;
+            case "0":
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+            case "5":
+            case "6":
+            case "7":
+            case "8":
+            case "9":
+                numpad.digitv(event.key);
+                break;
+            case '.':
+                numpad.dot();
+                break;
+            case 'Backspace':
+            case 'Del':
+                numpad.delete();
+                break;
+            case 'x':
+            case 'X':
+                numpad.reset();
+                break;
+            case 'c':
+            case 'C':
+                numpad.reset();
+                break;
+            case 'g':
+            case 'G':
+                numpad.recall();
+                break;
+            case 's':
+            case 'S':
+            case 'Enter':
+                numpad.setCoordinate();
+                break;
+        }
+    },
+
+    // (B2) NUMBER (0 TO 9)
+
+    digitv: function(n) {
+        var current = numpad.hdisplay.value;
+        if (current.length < numpad.nowMax) {
+            if (current=="0") {
+                numpad.hdisplay.value = n;
+            } else {
+                numpad.hdisplay.value += n;
+            }
+        }
+    },
+
+    digit: function() {
+        numpad.digitv(this.innerHTML);
+    },
+
+    // Change sign
+    toggleSign: function(){
+        numpad.hdisplay.value = -numpad.hdisplay.value;
+    },
+
+
+    // ADD DECIMAL POINT
+    dot: function(){
+        if (numpad.hdisplay.value.indexOf(".") == -1) {
+            if (numpad.hdisplay.value=="0") {
+                numpad.hdisplay.value = "0.";
+            } else {
+                numpad.hdisplay.value += ".";
+            }
+        }
+    },
+
+    // BACKSPACE
+    delete: function(){
+    var length = numpad.hdisplay.value.length;
+    if (length == 1) { numpad.hdisplay.value = 0; }
+    else { numpad.hdisplay.value = numpad.hdisplay.value.substring(0, length - 1); }
+  },
+
+  // (B5) CLEAR ALL
+  reset: function(){ numpad.hdisplay.value = "0"; },
+
+  // (B6) Recall
+  recall: function(){
+    numpad.hdisplay.value = numpad.nowTarget.textContent;
+  },
+
+  setCoordinate: function(){
+    numpad.nowTarget.textContent = numpad.hdisplay.value;
+    setAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
+    numpad.hide();
+  },
+
+  gotoCoordinate: function(){
+    numpad.nowTarget.textContent = numpad.hdisplay.value;
+    goAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
+    numpad.hide();
+  },
+
+  // (C) ATTACH NUMPAD TO INPUT FIELD
+  attach: function(opt){
+  // OPTIONS
+  //  target: required, ID of target field.
+  //  max: optional, maximum number of characters. Default 255.
+  //  decimal: optional, allow decimal? Default true.
+
+    // (C1) DEFAULT OPTIONS
+    if (opt.max === undefined) { opt.max = 255; }
+    if (opt.decimal === undefined) { opt.decimal = true; }
+    
+    // (C2) GET + SET TARGET OPTIONS
+    var target = id(opt.target);
+    target.readOnly = true;
+    target.dataset.max = opt.max;
+    target.dataset.decimal = opt.decimal;
+    target.dataset.axis = opt.axis;
+    target.dataset.elementName = opt.target;
+    target.addEventListener("click", numpad.show);
+  },
+
+  // (D) SHOW NUMPAD
+  show: function() {
+
+
+    // (D1) SET CURRENT DISPLAY VALUE
+    //var cv = this.value;
+    var cv = "";
+    if (cv == "") { cv = "0"; }
+    numpad.hdisplay.value = cv;
+
+    // (D2) SET MAX ALLOWED CHARACTERS
+    numpad.nowMax = this.dataset.max;
+
+    // (D3) SET DECIMAL
+    if (this.dataset.decimal == "true") {
+      numpad.hbwrap.classList.remove("noDec");
+    } else {
+      numpad.hbwrap.classList.add("noDec");
+    }
+
+    // (D4) SET CURRENT TARGET
+    numpad.nowTarget = this;
+
+    // (D5) SHOW NUMPAD
+    numpad.hwrap.classList.add("open");
+
+    // numpad.hpad.focus();
+  },
+
+  // (E) HIDE NUMPAD
+  hide: function(){ numpad.hwrap.classList.remove("open"); },
+};
+// End numpad.js
 // From utils.js
 function id(name) {
     return document.getElementById(name);
@@ -1447,6 +1692,13 @@ var Toolpath = function () {
     return Toolpath;
 }();
 // End simple-toolpath.js
+
+function getVersion() {
+    var version = id('version').innerText
+    console.log("Version", version)
+    return version
+}
+
 // From toolpath-displayer.js
 // Display the XY-plane projection of a GCode toolpath on a 2D canvas
 
@@ -2134,6 +2386,7 @@ function jogTo (axisAndDistance) {
         feedrate = feedrate.toFixed(2);
     }
 
+console.log('jogTo')
     var cmd;
     cmd = '$J=G91F' + feedrate + axisAndDistance + '\n';
     // tabletShowMessage("JogTo " + cmd);
@@ -2165,6 +2418,7 @@ var timeout_id = 0,
 
 var longone = false;
 function long_jog(target) {
+    console.log('long jog')
     longone = true;
     var distance = 1000;
     var axisAndDirection = target.value
@@ -3080,10 +3334,6 @@ function processMessage(eventMsg){
     }
 }
 
-function dro_click(event) {
-    console.log("DRO " + event.target.value)
-}
-
 function refreshFiles(event) {
     files_refreshFiles(files_currentPath)
 }
@@ -3205,13 +3455,12 @@ function col(width, content) {
     return div('', `col-tablet col-${width}`, content)
 }
 
-const axis_names = ['X', 'Y', 'Z', 'A', 'B', 'C', 'U', 'V', 'W']
 function makeDRO(axis) {
     return col(3,
                columns(`${axis}-dro`, '', [
                    col(1, div('', 'axis-label', axis.toUpperCase())),
                    //div('', 'col-tablet col-1 axis-label', axis),
-                   col(6, button(`wpos-${axis}`, 'btn-tablet position', '0.00', `Modify ${axis} position`, dro_click, axis)),
+                   col(6, button(`wpos-${axis}`, 'btn-tablet position', '0.00', `Modify ${axis} position`, null, axis)),
                    div(`mpos-${axis}`, 'col-tablet col-4 mposition', '0.00')
                ])
     )
@@ -3270,40 +3519,6 @@ function mi(text, theclick) {
 }
 
 function loadApp() {
-    //      injectCSS('.cols-tablet { width: 100%; display:flex; flex-wrap: nowrap; }')
-    //      injectCSS('[class~=col-], .col-tablet { width: 100%; padding-left: 0.2rem; }')
-    //      injectCSS('.disabled { cursor: not-allowed; }')
-    //      injectCSS('.btn-tablet:hover { background: #e0e0e0 }')
-    //      injectCSS('.btn-tablet:active { background: #d0f0d0 }')
-    //      injectCSS('.btn-tablet:disabled { background: #f0f0f0; color: black; }')
-    //      injectCSS('.btn-tablet { width: 100%; margin: 0.1rem; background: white; border: 0.05rem solid #5755d9; border-radius: 0.3rem; cursor: pointer; display:inline-block; font-size:1.3rem; height: 2.4rem; line-height: 1.2rem; outline: none; padding: 0.25rem 0.4rem; text-align: center; }')
-    //      injectCSS('#tablettab { height: 100%; padding: 5px; font-size: 1.1rem; text-align: center; vertical-align: middle; }')
-    //      // injectCSS('.tablettab { height: 100%;padding-top: 5px;padding-left: 5px;padding-bottom: 5px; }')
-    //      injectCSS('.messages { width: 100%; height: 45%; max-height: 100%; overflow-x: auto; overflow-y: scroll; padding: 2px; border-style: solid; border-width: 1px; border-radius: 5px; border-color: rgb(118, 118, 118); text-align:left; font-size: 1.0rem; }')
-    //      injectCSS('#messages { background-color: lightyellow;}')
-    //      injectCSS('#gcode-states { background-color: azure;height: fit-content; overflow-x: auto; overflow-y: hidden; text-align:left; }')
-    //      injectCSS('#gcode { background-color: lavenderblush;width: 100%;}')
-    //      injectCSS('.axis-label { font-size: 1.6rem; }')
-    //      injectCSS('#axis-position { background-color: azure; overflow: hidden; text-align: center; }')
-    //      injectCSS('.area { padding-top: 12px;  padding-bottom: 8px; padding-right: 8px; }')
-    //      injectCSS('.area2 { padding-bottom: 8px; padding-right: 8px; }')
-    //      injectCSS('#mdifiles { background-color: lavenderblush; }')
-    //      injectCSS('#setAxis { background-color: azure;  }')
-    //      injectCSS('#control-pad { background-color: lightyellow; }')
-    //      injectCSS('.mdi-entry { width:100%; height:100%; border-radius: 0.4rem; border-width: 1px; }')
-    //      injectCSS('.mposition { padding-top: 0.2rem; font-size: 1.4rem; color: #606060; }')
-    //      injectCSS('.info-button { padding-top: 0.1rem; font-size: 1.4rem; }')
-    //      injectCSS('.pos-name { font-size: 1.7rem; }')
-    //      injectCSS('#jog-distance { padding-top: 0; }')
-    //      injectCSS('.btn-lg { width:100%; border-width: 1px; border-radius: 5px; }')
-    //      injectCSS('#nav-panel { padding-top: 0.2rem; font-size: 1.6rem; }')
-    //      injectCSS('#expand-button {  position:absolute;  top:0;  right:0;  z-index:1;  width:2rem;  height:2rem;  margin: 5px;}')
-    //
-    //      injectCSS('#messagepane { height: 100%; }')
-    //      injectCSS('#previewpane { position: relative; }')
-    //      injectCSS('#toolpath { height:100%; width:100%; z-index:0; border: 0.05rem solid #5755d9; border-radius: 0.3rem; }')
-    // injectCSS('#filename { position:absolute; top:0; left:0; z-index:1; height:4rem; margin: 5px; }')
-
     const app =
         div('tablettab', 'tabcontent tablettab', [
             div('nav-panel', 'container nav-panel',
@@ -3321,13 +3536,13 @@ function loadApp() {
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
                             mi("Unlock", menuUnlock),
-                            mi("Reset", menuReset)
+                            mi("Reset", menuReset),
                         ]),
                     ])
                 ])
             ),
-            axis_labels(4),
-            axis_zeroing(4),
+            axis_labels(n_axes),
+            axis_zeroing(n_axes),
             div('control-pad', 'area control-pad', [
                 div('jog-controls', 'middle-block jog-controls', [
                     columns('', 'jog-row', [
@@ -3407,7 +3622,7 @@ function loadApp() {
             columns('status', 'status', [
                 div('messagepane', 'col-tablet col-5', [
                     div('gcode-states', 'd-block', 'G0'),
-                    div('messages', 'messages d-block', 'Serial Messages'),
+                    div('messages', 'messages d-block', "(Tablet UI " + getVersion() + ')'),
                     textarea('gcode', 'messages d-block', 'GCode File Display', '')
                 ]),
                 div('previewpane', 'col-tablet col-7', [
@@ -3447,7 +3662,7 @@ function addListeners() {
                 longone = false;
                 sendRealtimeCmd(0x85);
             } else {
-                sendMove(target.value);
+//                sendMove(target.value);
             }
         }
     })
@@ -3468,6 +3683,11 @@ function addListeners() {
     id('mditext0').addEventListener('keyup', mdiEnterKey)
     id('mditext1').addEventListener('keyup', mdiEnterKey)
 
+    for (let i = 0; i < n_axes; i++) {
+        const axis = axisNames[i]
+        numpad.attach({target: `wpos-${axis}`, axis: axis})
+    }
+
     // The listener could be added to the tablettab element by setting tablettabs
     // contentEditable property.  The problem is that it is too easy for tablettab
     // to lose focus, in which case it does not receive keys.  The solution is to
@@ -3483,6 +3703,7 @@ window.onload = (event) => {
     // This adds an event at the end of the queue so setBottomHeight
     // runs after everything has finished rendering
     setTimeout(setBottomHeight, 0)
+    numpad.init()
     tabletInit()
 }
 
