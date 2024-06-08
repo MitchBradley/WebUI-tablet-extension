@@ -2294,6 +2294,14 @@ function askCapabilities() {
     sendMessage({type:'capabilities', target:'webui', id:'tablet'})
 }
 
+function downloadPreferences() {
+    sendMessage({type:'download', target:'webui', id:'tablet', url:'preferences.json'});
+}
+
+function processPreferences(preferences) {
+    gCodeFileExtensions = JSON.parse(preferences).settings.filesfilter;
+}
+
 function sendCommand(cmd) {
     console.log(cmd)
     sendMessage({type:'cmd', target:'webui', id:'command', content:cmd})
@@ -2865,6 +2873,7 @@ function expandVisualizer() {
 }
 
 var gCodeFilename = '';
+var gCodeFileExtensions = '';
 
 function clearTabletFileSelector(message) {
     var selector = id('filelist');
@@ -2880,14 +2889,42 @@ function populateTabletFileSelector(files, path) {
 
     var selectedFile = gCodeFilename.split('/').slice(-1)[0];
 
+    // Normalize path
+    if(!path.startsWith('/')) {
+        path = '/' + path;
+    }
+    if(!path.endsWith('/')) {
+        path += '/';
+    }
+
+    files_currentPath = path;
+
     clearTabletFileSelector();
 
-    files_file_list = []
+    // Filter out files that are not directories or gcode files
+    var extList = gCodeFileExtensions.split(';');
+    files = files.filter(file => extList.includes(file.name.split('.').pop()) || file.size == -1);
+
+    // Sort files by name with directories first
+    files = files.sort(function(a, b) {
+        var sizeA = (a.size == -1 ? 1 : 0);
+        var sizeB = (b.size == -1 ? 1 : 0);
+        return (sizeB - sizeA) || a.name.localeCompare(b.name);
+    });
+
+    files_file_list = files;
+
+    var inRoot = path === '/';
     if (!files.length) {
-        addOption(selector, "No files found", -3, true, selectedFile == '');
+        addOption(selector, "No files found in /SD" + path, -3, true, selectedFile == '');
+
+        // Handle no valid files in folder
+        if (!inRoot) {
+            addOption(selector, '..', -1, false, false);
+        }
         return;
     }
-    var inRoot = path === '/';
+    
     var legend = 'Load GCode File from /SD' + path;
     addOption(selector, legend, -2, true, true);  // A different one might be selected later
 
@@ -2896,8 +2933,9 @@ function populateTabletFileSelector(files, path) {
     }
     var gCodeFileFound = false;
     files.forEach(function(file, index) {
-        if (/*file.isprintable*/1) {
-            files_file_list.push(file)
+        if (file.size == -1) { // Directory
+            addOption(selector, file.name + "/", index, false, false);
+        } else {
             var found = file.name == selectedFile;
             if (found) {
                 gCodeFileFound = true;
@@ -2911,18 +2949,13 @@ function populateTabletFileSelector(files, path) {
         setHTML('filename', '');
         showGCode('');
     }
-
-    files.forEach(function(file, index) {
-        if (file.isdir) {
-            addOption(selector, file.name + "/", index, false, false);
-        }
-    });
 }
 
 function tabletInit() {
     initDisplayer()
     requestModes()
     askCapabilities()
+    downloadPreferences()
 }
 
 function arrayToXYZ(a) {
@@ -3054,7 +3087,7 @@ function selectFile(event) {
     }
     var file = files_file_list[index];
     var filename = file.name;
-    if (file.isdir) {
+    if (file.size == -1) { // Directory
         gCodeFilename = '';
         files_enter_dir(filename);
     } else {
@@ -3306,7 +3339,7 @@ function processMessage(eventMsg){
                 const con = eventMsg.data.content
                 if (con.status=="success"){
                     const fileslist = JSON.parse(con.response);
-                    populateTabletFileSelector(fileslist.files, files_currentPath);
+                    populateTabletFileSelector(fileslist.files, fileslist.path);
                 } else {
                     //TBD
                 }
@@ -3320,7 +3353,11 @@ function processMessage(eventMsg){
                 if (content.status=="success"){
                     var reader = new FileReader();
                     reader.onload = function() {
-                        showGCode(reader.result)
+                        if(content.initiator.url === "preferences.json") {
+                            processPreferences(reader.result)
+                        } else {
+                            showGCode(reader.result)
+                        }
                     }
                     reader.readAsText(content.response);
                 } else {
