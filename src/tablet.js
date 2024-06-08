@@ -2905,11 +2905,9 @@ function populateTabletFileSelector(files, path) {
     var extList = gCodeFileExtensions.split(';');
     files = files.filter(file => extList.includes(file.name.split('.').pop()) || file.size == -1);
 
-    // Sort files by name with directories first
+    // Sort files by name
     files = files.sort(function(a, b) {
-        var sizeA = (a.size == -1 ? 1 : 0);
-        var sizeB = (b.size == -1 ? 1 : 0);
-        return (sizeB - sizeA) || a.name.localeCompare(b.name);
+        return a.name.localeCompare(b.name);
     });
 
     files_file_list = files;
