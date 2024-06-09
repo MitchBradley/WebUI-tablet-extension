@@ -3093,14 +3093,23 @@ function selectFile(event) {
     }
 }
 
-function hideMenu() {
-    //  displayNone('tablet-dropdown-menu')
+function toggleMenu() {
+    id('tablet-dropdown-menu').classList.toggle("hidden");
 }
-function menuReset() { stopAndRecover(); hideMenu(); }
-function menuUnlock() { sendCommand('$X'); hideMenu(); }
-function menuHomeAll() { sendCommand('$H'); hideMenu(); }
-function menuHomeA() { sendCommand('$HA'); hideMenu(); }
-function menuSpindleOff() { sendCommand('M5'); hideMenu(); }
+
+function menuReset() { stopAndRecover(); toggleMenu(); }
+function menuUnlock() { sendCommand('$X'); toggleMenu(); }
+function menuHomeAll() { sendCommand('$H'); toggleMenu(); }
+function menuHomeA() { sendCommand('$HA'); toggleMenu(); }
+function menuSpindleOff() { sendCommand('M5'); toggleMenu(); }
+function menuFullScreen() {
+    if(document.fullscreenElement) {
+        document.exitFullscreen();
+    } else {
+        document.querySelector("body").requestFullscreen(); 
+    }
+    toggleMenu();
+}
 
 function requestModes() { sendCommand('$G'); }
 
@@ -3479,6 +3488,7 @@ function button(id, cssclass, content, title, click, value) {
 function menubutton(id, cssclass, content) {
     var el = button(id, cssclass, content)
     el.tabindex = 0
+    el.onclick = toggleMenu;
     return el
 }
 
@@ -3568,6 +3578,7 @@ function loadApp() {
                             mi("Spindle Off", menuSpindleOff),
                             mi("Unlock", menuUnlock),
                             mi("Reset", menuReset),
+                            mi("Full Screen", menuFullScreen)
                         ]),
                     ])
                 ])
