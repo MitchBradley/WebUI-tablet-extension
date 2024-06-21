@@ -1,5 +1,3 @@
-
-
 var files_file_list = []
 var files_currentPath = '/'
 
@@ -9,6 +7,14 @@ function sendMessage(msg){
 
 function askCapabilities() {
     sendMessage({type:'capabilities', target:'webui', id:'tablet'})
+}
+
+function downloadPreferences() {
+    sendMessage({type:'download', target:'webui', id:'tablet', url:'preferences.json'});
+}
+
+function processPreferences(preferences) {
+    gCodeFileExtensions = JSON.parse(preferences).settings.filesfilter;
 }
 
 function sendCommand(cmd) {
@@ -582,6 +588,7 @@ function expandVisualizer() {
 }
 
 var gCodeFilename = '';
+var gCodeFileExtensions = '';
 
 function clearTabletFileSelector(message) {
     var selector = id('filelist');
@@ -593,30 +600,44 @@ function clearTabletFileSelector(message) {
 }
 
 function populateTabletFileSelector(files, path) {
-    files.sort((a, b) => {
-        const nameA = a.name.toUpperCase(); // ignore upper and lowercase
-        const nameB = b.name.toUpperCase(); // ignore upper and lowercase
-        if (nameA < nameB) {
-            return -1;
-        }
-        if (nameA > nameB) {
-             return 1;
-        }
-        // names must be equal
-        return 0;
-    });
     var selector = id('filelist');
 
     var selectedFile = gCodeFilename.split('/').slice(-1)[0];
 
+    // Normalize path
+    if(!path.startsWith('/')) {
+        path = '/' + path;
+    }
+    if(!path.endsWith('/')) {
+        path += '/';
+    }
+
+    files_currentPath = path;
+
     clearTabletFileSelector();
 
-    files_file_list = []
+    // Filter out files that are not directories or gcode files
+    var extList = gCodeFileExtensions.split(';');
+    files = files.filter(file => extList.includes(file.name.split('.').pop()) || file.size == -1);
+
+    // Sort files by name
+    files = files.sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+    });
+
+    files_file_list = files;
+
+    var inRoot = path === '/';
     if (!files.length) {
-        addOption(selector, "No files found", -3, true, selectedFile == '');
+        addOption(selector, "No files found in /SD" + path, -3, true, selectedFile == '');
+
+        // Handle no valid files in folder
+        if (!inRoot) {
+            addOption(selector, '..', -1, false, false);
+        }
         return;
     }
-    var inRoot = path === '/';
+    
     var legend = 'Load GCode File from /SD' + path;
     addOption(selector, legend, -2, true, true);  // A different one might be selected later
 
@@ -625,8 +646,9 @@ function populateTabletFileSelector(files, path) {
     }
     var gCodeFileFound = false;
     files.forEach(function(file, index) {
-        if (/*file.isprintable*/1) {
-            files_file_list.push(file)
+        if (file.size == -1) { // Directory
+            addOption(selector, file.name + "/", index, false, false);
+        } else {
             var found = file.name == selectedFile;
             if (found) {
                 gCodeFileFound = true;
@@ -640,18 +662,13 @@ function populateTabletFileSelector(files, path) {
         setHTML('filename', '');
         showGCode('');
     }
-
-    files.forEach(function(file, index) {
-        if (file.isdir) {
-            addOption(selector, file.name + "/", index, false, false);
-        }
-    });
 }
 
 function tabletInit() {
     initDisplayer()
     requestModes()
     askCapabilities()
+    downloadPreferences()
 }
 
 function arrayToXYZ(a) {
@@ -783,7 +800,7 @@ function selectFile(event) {
     }
     var file = files_file_list[index];
     var filename = file.name;
-    if (file.isdir) {
+    if (file.size == -1) { // Directory
         gCodeFilename = '';
         files_enter_dir(filename);
     } else {
@@ -791,14 +808,23 @@ function selectFile(event) {
     }
 }
 
-function hideMenu() {
-    //  displayNone('tablet-dropdown-menu')
+function toggleMenu() {
+    id('tablet-dropdown-menu').classList.toggle("hidden");
 }
-function menuReset() { stopAndRecover(); hideMenu(); }
-function menuUnlock() { sendCommand('$X'); hideMenu(); }
-function menuHomeAll() { sendCommand('$H'); hideMenu(); }
-function menuHomeA() { sendCommand('$HA'); hideMenu(); }
-function menuSpindleOff() { sendCommand('M5'); hideMenu(); }
+
+function menuReset() { stopAndRecover(); toggleMenu(); }
+function menuUnlock() { sendCommand('$X'); toggleMenu(); }
+function menuHomeAll() { sendCommand('$H'); toggleMenu(); }
+function menuHomeA() { sendCommand('$HA'); toggleMenu(); }
+function menuSpindleOff() { sendCommand('M5'); toggleMenu(); }
+function menuFullScreen() {
+    if(document.fullscreenElement) {
+        document.exitFullscreen();
+    } else {
+        document.querySelector("body").requestFullscreen(); 
+    }
+    toggleMenu();
+}
 
 function requestModes() { sendCommand('$G'); }
 
@@ -1035,7 +1061,7 @@ function processMessage(eventMsg){
                 const con = eventMsg.data.content
                 if (con.status=="success"){
                     const fileslist = JSON.parse(con.response);
-                    populateTabletFileSelector(fileslist.files, files_currentPath);
+                    populateTabletFileSelector(fileslist.files, fileslist.path);
                 } else {
                     //TBD
                 }
@@ -1049,7 +1075,11 @@ function processMessage(eventMsg){
                 if (content.status=="success"){
                     var reader = new FileReader();
                     reader.onload = function() {
-                        showGCode(reader.result)
+                        if(content.initiator.url === "preferences.json") {
+                            processPreferences(reader.result)
+                        } else {
+                            showGCode(reader.result)
+                        }
                     }
                     reader.readAsText(content.response);
                 } else {
@@ -1173,6 +1203,7 @@ function button(id, cssclass, content, title, click, value) {
 function menubutton(id, cssclass, content) {
     var el = button(id, cssclass, content)
     el.tabindex = 0
+    el.onclick = toggleMenu;
     return el
 }
 
@@ -1257,6 +1288,7 @@ function loadApp() {
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('ul', 'tablet-dropdown-menu', 'menu', [
+                            mi("Full Screen", menuFullScreen)
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
