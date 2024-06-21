@@ -630,6 +630,10 @@ var parseLine = function () {
     }();
     var re = /(%.*)|((?:\$\$)|(?:\$[a-zA-Z0-9#]*))|([a-zA-Z][0-9\+\-\.]*)|(\*[0-9]+)/igm;
 
+    var get_gcode_number = function(argument) {
+        return Number(argument);
+    }
+
     return function (line, options) {
         options = options || {};
         options.flatten = !!options.flatten;
@@ -647,44 +651,41 @@ var parseLine = function () {
 
         var ln = void 0; // Line number
         var cs = void 0; // Checksum
-        var words = stripComments(line).match(re) || [];
+        line = stripComments(line);
+        s = new LinePos(line)
 
-        for (let i = 0; i < words.length; ++i) {
-            let word = words[i];
-            const letter = word[0].toUpperCase();
-            const argument = word.slice(1);
+        var pos = 0
 
-            // Parse % commands for bCNC and CNCjs
-            // - %wait Wait until the planner queue is empty
-            if (letter === '%') {
-                result.cmds = (result.cmds || []).concat(line.trim());
+        // GCode
+        for (s.pos = 0; s.pos < s.line.length; ) {
+            var letter = s.line[s.pos++].toUpperCase()
+
+            if (letter === '#') {
+                let status = assign_param(s)
+                // line = line.substr(s.pos)
                 continue;
             }
 
-            // Parse $ commands for Grbl
-            // - $C Check gcode mode
-            // - $H Run homing cycle
-            if (letter === '$') {
-                result.cmds = (result.cmds || []).concat('' + letter + argument);
-                continue;
+            // Otherwise parse a number, parameter, or expression
+            // that must evaluate to a number
+
+            var value = read_number(s, false)
+            if (isNaN(value)) {
+                console.log("Bad number")
+                continue
             }
 
             // N: Line number
             if (letter === 'N' && typeof ln === 'undefined') {
                 // Line (block) number in program
-                ln = Number(argument);
+                ln = value
                 continue;
             }
 
             // *: Checksum
             if (letter === '*' && typeof cs === 'undefined') {
-                cs = Number(argument);
+                cs = value
                 continue;
-            }
-
-            var value = Number(argument);
-            if (Number.isNaN(value)) {
-                value = argument;
             }
 
             if (options.flatten) {
@@ -702,6 +703,7 @@ var parseLine = function () {
         if (result.cs && computeChecksum(line) !== result.cs) {
             result.err = true; // checksum failed
         }
+        perform_assignments()
 
         return result;
     };
