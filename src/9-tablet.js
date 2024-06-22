@@ -668,6 +668,7 @@ function tabletInit() {
     initDisplayer()
     requestModes()
     askCapabilities()
+    askMachineBbox()
     downloadPreferences()
 }
 
@@ -1288,7 +1289,7 @@ function loadApp() {
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('ul', 'tablet-dropdown-menu', 'menu', [
-                            mi("Full Screen", menuFullScreen)
+                            mi("Full Screen", menuFullScreen),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
@@ -1389,6 +1390,7 @@ function loadApp() {
                 ]),
             ]),
             input('uploadBtn', 'd-none', 'file', null, internalUploadFile, ""),
+            button('fsBtn', 'btn-tablet d-none', "[ ]" , "Full Screen",  menuFullScreen, '')
         ])
 
     document.body.appendChild(app)
