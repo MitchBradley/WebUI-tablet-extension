@@ -18,8 +18,7 @@ function processPreferences(preferences) {
 }
 
 function sendCommand(cmd) {
-    console.log(cmd)
-    sendMessage({type:'cmd', target:'webui', id:'command', content:cmd})
+    sendMessage({type:'cmd', target:'webui', id:'command', content:cmd, noDispatch:true})
 }
 function sendRealtimeCmd(code) {
     var cmd = String.fromCharCode(code)
@@ -233,53 +232,54 @@ function getItemValue(msg, name) {
     }
     return '';
 }
-function getAxisValueSuccess(msg) {
-    let value = '';
-    if (value = getItemValue(msg, '$/axes/x/max_travel_mm=')) {
+function getDollarResult(result) {
+    [name, value] = result.split('=');
+    if (!value) {
+        return;
+    }
+    switch (name) {
+    case '$/axes/x/max_travel_mm':
         displayer.setXTravel(parseFloat(value));
         return;
-    }
-    if (value = getItemValue(msg, '$/axes/y/max_travel_mm=')) {
+    case '$/axes/y/max_travel_mm':
         displayer.setYTravel(parseFloat(value));
         return;
-    }
-
-    if (value = getItemValue(msg, '$/axes/x/homing/mpos_mm=')) {
+    case '$/axes/x/homing/mpos_mm':
         displayer.setXHome(parseFloat(value));
         return;
-    }
-    if (value = getItemValue(msg, '$/axes/y/homing/mpos_mm=')) {
+    case '$/axes/y/homing/mpos_mm':
         displayer.setYHome(parseFloat(value));
         return;
-    }
-
-    if (value = getItemValue(msg, '$/axes/x/homing/positive_direction=')) {
+    case '$/axes/x/homing/positive_direction':
         displayer.setXDir(value);
         return;
-    }
-    if (value = getItemValue(msg, '$/axes/y/homing/positive_direction=')) {
+    case '$/axes/y/homing/positive_direction':
         displayer.setYDir(value);
         return;
     }
-
 }
 
-function getAxisValueFailure() {
-    console.log("Failed to get axis data");
+const tabletScrollMessage = (msg) => {
+    var messages = id('messages');
+    messages.innerHTML += "<br>" + msg;
+    messages.scrollTop = messages.scrollHeight;
 }
 
 function tabletShowMessage(msg) {
-    if (msg ==  '' || msg.startsWith('<') || msg.startsWith('ok') || msg.startsWith('\n') || msg.startsWith('\r')) {
+    if (msg ==  '' || msg.startsWith('<') || msg.startsWith('\n') || msg.startsWith('\r')) {
+        return;
+    }
+    if (msg.startsWith('ok')) {
+        // success
         return;
     }
     if (msg.startsWith('error:')) {
         msg = '<span style="color:red;">' + msg + '</span>';
     }
-    var messages = id('messages');
-    messages.innerHTML += "<br>" + msg;
-    messages.scrollTop = messages.scrollHeight;
-
-    getAxisValueSuccess(msg);
+    tabletScrollMessage(msg);
+    if (msg.startsWith('$')) {
+        getDollarResult(msg);
+    }
 }
 
 function tabletShowResponse(response) {
@@ -703,23 +703,34 @@ function showGCode(gcode) {
 
 var machineBboxAsked = false;
 
-function getAxisValue(name) {
-    var url = "/command?plain=" + encodeURIComponent(name);
-    sendCommand(name)
+const axisResult = (content) => {
+    let query = content.initiator.content;
+    if (content.status == 'success') {
+        getDollarResult(content.response);
+    } else {
+        displayer.disableBoundary();
+        // Suppress further Bbox queries as they are moot
+        machineBboxAsked = true;
+    }
+}
+
+function askAxis(name) {
+    sendMessage({type:'cmd', target:'webui', id:'axis', content:name, noToast:true})
 }
 
 function askMachineBbox() {
     if (machineBboxAsked) {
         return;
     }
-    machineBboxAsked = true;
-    getAxisValue("$/axes/x/max_travel_mm");
-    getAxisValue("$/axes/x/homing/mpos_mm");
-    getAxisValue("$/axes/x/homing/positive_direction");
+    askAxis("$/axes/x/homing/mpos_mm");
+    askAxis("$/axes/x/homing/positive_direction");
+    askAxis("$/axes/x/max_travel_mm");
 
-    getAxisValue("$/axes/y/max_travel_mm");
-    getAxisValue("$/axes/y/homing/mpos_mm");
-    getAxisValue("$/axes/y/homing/positive_direction");
+    askAxis("$/axes/y/homing/mpos_mm");
+    askAxis("$/axes/y/homing/positive_direction");
+    askAxis("$/axes/y/max_travel_mm");
+
+    machineBboxAsked = true;
 }
 
 function nthLineEnd(str, n){
@@ -1048,34 +1059,42 @@ function files_refreshFiles(dir) {
 }
 
 function processMessage(eventMsg){
-    if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=="tablet")){
+    if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=='tablet'||eventMsg.data.id=='command'||eventMsg.data.id=='axis')) {
         switch (eventMsg.data.type) {
-            case "capabilities":
+            case 'cmd':
+                if (eventMsg.data.id == 'axis') {
+                    axisResult(eventMsg.data.content);
+                } else {
+                    console.log('cmd',eventMsg.data.content);
+                }
+                break;
+            case 'capabilities':
                 fwname = eventMsg.data.content.response.FWTarget;
                 refreshFiles()
                 if (fwname == 'FluidNC') {
                     setupFluidNC()
                 }
                 break
-            case "query":
+            case 'query':
                 const con = eventMsg.data.content
-                if (con.status=="success"){
+                if (con.status=='success'){
                     const fileslist = JSON.parse(con.response);
                     populateTabletFileSelector(fileslist.files, fileslist.path);
                 } else {
+                    console.log('query fail',con);
                     //TBD
                 }
                 break
-            case "stream":
+            case 'stream':
                 grblHandleMessage(eventMsg.data.content)
                 // tabletShowMessage(eventMsg.data.content);
                 break
-            case "download":
+            case 'download':
                 const content = eventMsg.data.content
-                if (content.status=="success"){
+                if (content.status=='success'){
                     var reader = new FileReader();
                     reader.onload = function() {
-                        if(content.initiator.url === "preferences.json") {
+                        if(content.initiator.url === 'preferences.json') {
                             processPreferences(reader.result)
                         } else {
                             showGCode(reader.result)
@@ -1288,7 +1307,7 @@ function loadApp() {
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('ul', 'tablet-dropdown-menu', 'menu', [
-                            mi("Full Screen", menuFullScreen)
+                            mi("Full Screen", menuFullScreen),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
