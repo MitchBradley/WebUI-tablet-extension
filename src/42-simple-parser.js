@@ -5,7 +5,7 @@
 // translate that to older Javascript
 
 // @param {string} line The G-code line
-const parseLine = function() {
+const parseLine = () => {
     // http://reprap.org/wiki/G-code#Special_fields
     // The checksum "cs" for a GCode string "cmd" (including its line number) is computed
     // by exor-ing the bytes in the string up to and not including the * character.
@@ -52,8 +52,8 @@ const parseLine = function() {
 
         result.words = [];
 
-        const ln = undefined; // Line number
-        var cs = undefined; // Checksum
+        let ln; // Line number
+        let cs; // Checksum
         line = stripComments(line);
         s = new LinePos(line)
 
@@ -99,11 +99,11 @@ const parseLine = function() {
         }
 
         // Line number
-        typeof ln !== 'undefined' && (result.ln = ln);
+        (typeof (ln) !== 'undefined') && (result.ln = ln);
 
         // Checksum
-        typeof cs !== 'undefined' && (result.cs = cs);
-        if (result.cs && computeChecksum(line) !== result.cs) {
+        (typeof (cs) !== 'undefined') && (result.cs = cs);
+        if (result.cs && (computeChecksum(line) !== result.cs)) {
             result.err = true; // checksum failed
         }
         perform_assignments()
