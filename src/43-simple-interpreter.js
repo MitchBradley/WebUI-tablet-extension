@@ -3,18 +3,13 @@
 // This file was derived from
 // https://github.com/cncjs/gcode-interpreter/blob/master/src/Interpreter.js
 // as follows:
-// a) Removed the import and export sections, and manually translated from
-//    class syntax to prototype syntax, for compatibility with old browsers
-// b) Removed all of the load* methods, replacing them with a single method
-//    loadFromLinesSync().  Since we know that the interpreter will be called
-//    twice, first to determine the bounding box (for sizing the canvas) and
-//    then to render onto the canvas, the gcode string can be broken into an
-//    array of lines once and that array reused for both passes.  This also
-//    eliminates the need for a parseStringSync() function in simple-parser;
-//    the only necessary function is parseLine().
-// c) Replaced const with var
-// d) Replaced arrow functions with real functions
-// e) Replaced let with var
+// * Removed all of the load* methods, replacing them with a single method
+//   loadFromLinesSync().  Since we know that the interpreter will be called
+//   twice, first to determine the bounding box (for sizing the canvas) and
+//   then to render onto the canvas, the gcode string can be broken into an
+//   array of lines once and that array reused for both passes.  This also
+//   eliminates the need for a parseStringSync() function in simple-parser;
+//   the only necessary function is parseLine().
 
 /**
  * Returns an object composed from arrays of property names and values.
@@ -22,24 +17,24 @@
  *   fromPairs([['a', 1], ['b', 2]]);
  *   // => { 'a': 1, 'b': 2 }
  */
-var fromPairs = function(pairs) {
-    var index = -1;
-    var length = (!pairs) ? 0 : pairs.length;
-    var result = {};
+const fromPairs = (pairs) => {
+    let index = -1;
+    const length = (!pairs) ? 0 : pairs.length;
+    const result = {};
 
     while (++index < length) {
-        var pair = pairs[index];
+        const pair = pairs[index];
         result[pair[0]] = pair[1];
     }
 
     return result;
 };
 
-var partitionWordsByGroup = function(words) {
-    var groups = [];
+const partitionWordsByGroup = (words = []) => {
+    const groups = [];
 
     for (let i = 0; i < words.length; ++i) {
-        let word = words[i];
+        const word = words[i];
         const letter = word[0];
 
         if ((letter === 'G') || (letter === 'M') || (letter === 'T')) {
@@ -57,12 +52,12 @@ var partitionWordsByGroup = function(words) {
     return groups;
 };
 
-var interpret = function(self, data) {
-    var groups = partitionWordsByGroup(data.words);
+const interpret = (self, data) => {
+    const groups = partitionWordsByGroup(data.words);
 
     for (let i = 0; i < groups.length; ++i) {
-        let words = groups[i];
-        let word = words[0] || [];
+        const words = groups[i];
+        const word = words[0] || [];
         const letter = word[0];
         const code = word[1];
         let cmd = '';
@@ -113,32 +108,35 @@ var interpret = function(self, data) {
         }
 
         if (typeof self.handlers[cmd] === 'function') {
-            var func = self.handlers[cmd];
+            const func = self.handlers[cmd];
             func(args);
+        } else if (typeof self.defaultHandler === 'function') {
+            self.defaultHandler(cmd, args);
         }
 
         if (typeof self[cmd] === 'function') {
-            var func = self[cmd].bind(self);
+            const func = self[cmd].bind(self);
             func(args);
         }
     }
 };
 
-function Interpreter(options) {
-    this.motionMode = 'G0';
-    this.handlers = {};
+class Interpreter {
+    motionMode = 'G0';
+    handlers = {};
 
-    options = options || {};
-    options.handlers = options.handlers || {};
+    constructor(options) {
+        options = options || {};
+        this.handlers = options.handlers || {};
+        this.defaultHandler = options.defaultHandler;
+    }
 
-    this.handlers = options.handlers;
-}
-
-Interpreter.prototype.loadFromLinesSync = function(lines) {
-    for (let i = 0; i < lines.length; ++i) {
-        const line = lines[i].trim();
-        if (line.length !== 0) {
-	    interpret(this, parseLine(line, {}));
+    loadFromLinesSync = (lines) => {
+        for (let i = 0; i < lines.length; ++i) {
+            const line = lines[i].trim();
+            if (line.length !== 0) {
+	       interpret(this, parseLine(line, {}));
+            }
         }
     }
 }

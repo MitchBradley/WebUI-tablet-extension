@@ -5,17 +5,17 @@
 // translate that to older Javascript
 
 // @param {string} line The G-code line
-var parseLine = function () {
+const parseLine = function() {
     // http://reprap.org/wiki/G-code#Special_fields
     // The checksum "cs" for a GCode string "cmd" (including its line number) is computed
     // by exor-ing the bytes in the string up to and not including the * character.
-    var computeChecksum = function computeChecksum(s) {
+    const computeChecksum = (s) => {
         s = s || '';
         if (s.lastIndexOf('*') >= 0) {
             s = s.substr(0, s.lastIndexOf('*'));
         }
 
-        var cs = 0;
+        let cs = 0;
         for (let i = 0; i < s.length; ++i) {
             const c = s[i].charCodeAt(0);
             cs ^= c;
@@ -23,27 +23,26 @@ var parseLine = function () {
         return cs;
     };
     // http://linuxcnc.org/docs/html/gcode/overview.html#gcode:comments
-    // Comments can be embedded in a line using parentheses () or for the remainder of a lineusing a semi-colon. The semi-colon is not treated as the start of a comment when enclosed in parentheses.
-    var stripComments = function () {
-        var re1 = new RegExp(/\s*\([^\)]*\)/g); // Remove anything inside the parentheses
-        var re2 = new RegExp(/\s*;.*/g); // Remove anything after a semi-colon to the end of the line, including preceding spaces
-        var re3 = new RegExp(/\s+/g);
-        return function (line) {
-            return line.replace(re1, '').replace(re2, '').replace(re3, '');
-        };
-    }();
-    var re = /(%.*)|((?:\$\$)|(?:\$[a-zA-Z0-9#]*))|([a-zA-Z][0-9\+\-\.]*)|(\*[0-9]+)/igm;
+    // Comments can be embedded in a line using parentheses () or for the remainder of a line
+    // using a semi-colon. The semi-colon is not treated as the start of a comment when enclosed
+    // in parentheses.
+    const stripComments = (line) => {
+        const re1 = new RegExp(/\s*\([^\)]*\)/g); // Remove anything inside the parentheses
+        const re2 = new RegExp(/\s*;.*/g); // Remove anything after a semi-colon to the end of the line, including preceding spaces
+        const re3 = new RegExp(/\s+/g);
+        return line.replace(re1, '').replace(re2, '').replace(re3, '');
+    };
 
-    var get_gcode_number = function(argument) {
+    const get_gcode_number = (argument) => {
         return Number(argument);
     }
 
-    return function (line, options) {
+    return (line, options) => {
         options = options || {};
         options.flatten = !!options.flatten;
         options.noParseLine = !!options.noParseLine;
 
-        var result = {
+        const result = {
             line: line
         };
 
@@ -53,8 +52,8 @@ var parseLine = function () {
 
         result.words = [];
 
-        var ln = void 0; // Line number
-        var cs = void 0; // Checksum
+        const ln = undefined; // Line number
+        var cs = undefined; // Checksum
         line = stripComments(line);
         s = new LinePos(line)
 
@@ -62,7 +61,7 @@ var parseLine = function () {
 
         // GCode
         for (s.pos = 0; s.pos < s.line.length; ) {
-            var letter = s.line[s.pos++].toUpperCase()
+            const letter = s.line[s.pos++].toUpperCase()
 
             if (letter === '#') {
                 let status = assign_param(s)
@@ -73,7 +72,7 @@ var parseLine = function () {
             // Otherwise parse a number, parameter, or expression
             // that must evaluate to a number
 
-            var value = read_number(s, false)
+            const value = read_number(s, false)
             if (isNaN(value)) {
                 console.log("Bad number")
                 continue
