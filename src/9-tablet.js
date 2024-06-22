@@ -1389,6 +1389,7 @@ function loadApp() {
                 ]),
             ]),
             input('uploadBtn', 'd-none', 'file', null, internalUploadFile, ""),
+            button('fsBtn', 'btn-tablet d-none', "[ ]" , "Full Screen",  menuFullScreen, '')
         ])
 
     document.body.appendChild(app)
@@ -1462,6 +1463,7 @@ window.onload = (event) => {
     setTimeout(setBottomHeight, 0)
     numpad.init()
     tabletInit()
+    askMachineBbox();
 }
 
 document.onreadystatechange = event => {
