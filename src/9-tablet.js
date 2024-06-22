@@ -1,146 +1,142 @@
-var files_file_list = []
-var files_currentPath = '/'
+let files_file_list = []
+let files_currentPath = '/'
 
-function sendMessage(msg){
+const sendMessage = (msg) => {
     window.parent.postMessage(msg, '*')
 }
 
-function askCapabilities() {
+const askCapabilities = () => {
     sendMessage({type:'capabilities', target:'webui', id:'tablet'})
 }
 
-function downloadPreferences() {
+const downloadPreferences = () => {
     sendMessage({type:'download', target:'webui', id:'tablet', url:'preferences.json'});
 }
 
-function processPreferences(preferences) {
+const processPreferences = (preferences) => {
     gCodeFileExtensions = JSON.parse(preferences).settings.filesfilter;
 }
 
-function sendCommand(cmd) {
+const sendCommand = (cmd) => {
     sendMessage({type:'cmd', target:'webui', id:'command', content:cmd, noDispatch:true})
 }
-function sendRealtimeCmd(code) {
-    var cmd = String.fromCharCode(code)
+const sendRealtimeCmd = (code) => {
+    const cmd = String.fromCharCode(code)
     sendCommand(cmd)
 }
 
 
 // XXX this needs to get a setting value from WebUI
 // when there is a way to do that
-function JogFeedrate(axisAndDistance) {
+const JogFeedrate = (axisAndDistance) => {
     return axisAndDistance.startsWith('Z') ? 100 : 1000;
 }
 
 
-function beep(vol, hz, ms) {
+const beep = (vol, hz, ms) => {
     //      useUiContextFn.haptic()
 }
 
-function tabletClick() {
+const tabletClick = () => {
     if (window.navigator && window.navigator.vibrate) {
         window.navigator.vibrate(200);
     }
     beep(3, 400, 10);
 }
 
-function moveTo(location) {
+const moveTo = (location) => {
     // Always force G90 mode because synchronization of modal reports is unreliable
-    var feedrate = 1000;
-    var cmd;
     // For controllers that permit it, specifying mode and move in one block is safer
-    cmd = 'G90 G0 ' + location;
+    const cmd = 'G90 G0 ' + location;
     sendCommand(cmd);
 }
 
-function MDIcmd(value) {
+const MDIcmd = (value) => {
     tabletClick();
     sendCommand(value);
 }
 
-function MDI(field) {
+const MDI = (field) => {
     MDIcmd(id(field).value);
 }
 
-function doMDI(event) {
+const doMDI = (event) => {
     MDI(event.target.value)  // value refers to the adjacent text entry box
 }
 
-function inputFocused () {
+const inputFocused  = () => {
     isInputFocused = true;
 }
 
-function inputBlurred () {
+const inputBlurred  = () => {
     isInputFocused = false;
 }
 
-function zeroAxis (event) {
+const zeroAxis  = (event) => {
     tabletClick();
     setAxisByValue(event.target.value, 0);
 }
 
-function toggleUnits () {
+const toggleUnits  = () => {
     tabletClick();
     sendCommand(modal.units == 'G21' ? 'G20' : 'G21');
     // The button label will be fixed by the response to $G
     sendCommand('$G');
 }
 
-function btnSetDistance (event) {
+const btnSetDistance  = (event) => {
     tabletClick();
-    var distance = event.target.innerText;
+    id('jog-distance').value = event.target.innerText;;
+}
+
+const setDistance  = (distance) => {
+    tabletClick();
     id('jog-distance').value = distance;
 }
 
-function setDistance (distance) {
-    tabletClick();
-    id('jog-distance').value = distance;
-}
 
-
-function jogTo (axisAndDistance) {
+const jogTo  = (axisAndDistance) => {
     // Always force G90 mode because synchronization of modal reports is unreliable
-    var feedrate = JogFeedrate(axisAndDistance);
+    let feedrate = JogFeedrate(axisAndDistance);
     if (modal.units == "G20") {
         feedrate /= 25.4;
         feedrate = feedrate.toFixed(2);
     }
 
-    var cmd;
-    cmd = '$J=G91F' + feedrate + axisAndDistance + '\n';
+    const cmd = '$J=G91F' + feedrate + axisAndDistance + '\n';
     // tabletShowMessage("JogTo " + cmd);
     sendCommand(cmd);
 }
 
-function goAxisByValue (axis, coordinate) {
+const goAxisByValue  = (axis, coordinate) => {
     tabletClick();
     moveTo(axis + coordinate);
 }
-function goto0(event) {
+const goto0 = (event) => {
     goAxisByValue(event.target.value, 0)
 }
 
-function setAxisByValue (axis, coordinate) {
+const setAxisByValue  = (axis, coordinate) => {
     tabletClick();
-    var cmd = 'G10 L20 P0 ' + axis + coordinate;
+    const cmd = 'G10 L20 P0 ' + axis + coordinate;
     sendCommand(cmd);
 }
 
-function setAxis (axis, field) {
+const setAxis  = (axis, field) => {
     tabletClick();
     const coordinate = id(field).value;
     const cmd = 'G10 L20 P1 ' + axis + coordinate;
     sendCommand(cmd);
 }
-var timeout_id = 0,
+let timeout_id = 0,
     hold_time = 1000;
 
-var longone = false;
-function long_jog(target) {
+let longone = false;
+const long_jog = (target) => {
     longone = true;
-    var distance = 1000;
-    var axisAndDirection = target.value
-    var feedrate = JogFeedrate(axisAndDirection);
+    let distance = 1000;
+    const axisAndDirection = target.value
+    const feedrate = JogFeedrate(axisAndDirection);
     if (modal.units == "G20") {
         distance /= 25.4;
         distance = distance.toFixed(3);
@@ -152,87 +148,87 @@ function long_jog(target) {
     sendCommand(cmd);
 }
 
-function sendMove (cmd) {
+const sendMove  = (cmd) => {
     tabletClick();
-    var jog = function(params) {
+    const jog = (params) => {
         params = params || {};
-        var s = '';
+        let s = '';
         for (let key in params) {
             s += key + params[key]
         }
         jogTo(s);
     };
-    var move = function(params) {
+    const move = (params) => {
         params = params || {};
-        var s = '';
+        let s = '';
         for (let key in params) {
             s += key + params[key];
         }
         moveTo(s);
     };
 
-    var distance = Number(id('jog-distance').value) || 0;
+    const distance = Number(id('jog-distance').value) || 0;
 
-    var fn = {
-        'G28': function() {
+    const fn = {
+        'G28': () => {
             sendCommand('G28');
         },
-        'G30': function() {
+        'G30': () => {
             sendCommand('G30');
         },
-        'X0Y0Z0': function() {
+        'X0Y0Z0': () => {
             move({ X: 0, Y: 0, Z: 0 })
         },
-        'X0': function() {
+        'X0': () => {
             move({ X: 0 });
         },
-        'Y0': function() {
+        'Y0': () => {
             move({ Y: 0 });
         },
-        'Z0': function() {
+        'Z0': () => {
             move({ Z: 0 });
         },
-        'X-Y+': function() {
+        'X-Y+': () => {
             jog({ X: -distance, Y: distance });
         },
-        'X+Y+': function() {
+        'X+Y+': () => {
             jog({ X: distance, Y: distance });
         },
-        'X-Y-': function() {
+        'X-Y-': () => {
             jog({ X: -distance, Y: -distance });
         },
-        'X+Y-': function() {
+        'X+Y-': () => {
             jog({ X: distance, Y: -distance });
         },
-        'X-': function() {
+        'X-': () => {
             jog({ X: -distance });
         },
-        'X+': function() {
+        'X+': () => {
             jog({ X: distance });
         },
-        'Y-': function() {
+        'Y-': () => {
             jog({ Y: -distance });
         },
-        'Y+': function() {
+        'Y+': () => {
             jog({ Y: distance });
         },
-        'Z-': function() {
+        'Z-': () => {
             jog({ Z: -distance });
         },
-        'Z+': function() {
+        'Z+': () => {
             jog({ Z: distance });
         }
     }[cmd];
 
     fn && fn();
 };
-function getItemValue(msg, name) {
+const getItemValue = (msg, name) => {
     if (msg.startsWith(name)) {
         return msg.substring(name.length, msg.length);
     }
     return '';
 }
-function getDollarResult(result) {
+const getDollarResult = (result) => {
     [name, value] = result.split('=');
     if (!value) {
         return;
@@ -260,12 +256,12 @@ function getDollarResult(result) {
 }
 
 const tabletScrollMessage = (msg) => {
-    var messages = id('messages');
+    const messages = id('messages');
     messages.innerHTML += "<br>" + msg;
     messages.scrollTop = messages.scrollHeight;
 }
 
-function tabletShowMessage(msg) {
+const tabletShowMessage = (msg) => {
     if (msg ==  '' || msg.startsWith('<') || msg.startsWith('\n') || msg.startsWith('\r')) {
         return;
     }
@@ -282,88 +278,88 @@ function tabletShowMessage(msg) {
     }
 }
 
-function tabletShowResponse(response) {
-    var messages = id('messages');
+const tabletShowResponse = (response) => {
+    const messages = id('messages');
     messages.value = response;
 }
 
-function setJogSelector(units) {
-    var buttonDistances = [];
-    var menuDistances = [];
-    var selected = 0;
+const setJogSelector = (units) => {
+    let buttonDistances = [];
+    let menuDistances = [];
+    let selected = 0;
     if (units == 'G20') {
         // Inches
         buttonDistances = [0.001, 0.01, 0.1, 1, 0.003, 0.03, 0.3, 3, 0.005, 0.05, 0.5, 5];
         menuDistances = [0.00025, 0.0005, 0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10, 30];
         selected = '1';
-    } else  {
+    } else {
         // millimeters
         buttonDistances = [0.1, 1, 10, 100, 0.3, 3, 30, 300, 0.5, 5, 50, 500];
         menuDistances = [0.005, 0.01, 0.03, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10, 30, 50, 100, 300, 500, 1000];
         selected = '10';
     }
-    var buttonNames = ['jog00', 'jog01', 'jog02', 'jog03', 'jog10', 'jog11', 'jog12', 'jog13', 'jog20', 'jog21', 'jog22', 'jog23'];
-    buttonNames.forEach( function(n, i) { id(n).innerHTML = buttonDistances[i]; } );
+    const buttonNames = ['jog00', 'jog01', 'jog02', 'jog03', 'jog10', 'jog11', 'jog12', 'jog13', 'jog20', 'jog21', 'jog22', 'jog23'];
+    buttonNames.forEach( (n, i) => { id(n).innerHTML = buttonDistances[i]; } );
 
-    var selector = id('jog-distance');
+    const selector = id('jog-distance');
     selector.length = 0;
     selector.innerText = null;
-    menuDistances.forEach(function(v) {
-        var option = document.createElement("option");
+    menuDistances.forEach((v) => {
+        const option = document.createElement("option");
         option.textContent=v;
         option.selected = (v == selected);
         selector.appendChild(option);
     });
 }
-function removeJogDistance(option, oldIndex) {
-    var selector = id('jog-distance');
+const removeJogDistance = (option, oldIndex) => {
+    const selector = id('jog-distance');
     selector.removeChild(option);
     selector.selectedIndex = oldIndex;
 }
-function addJogDistance(distance) {
-    var selector = id('jog-distance');
-    var option = document.createElement("option");
+const addJogDistance = (distance) => {
+    const selector = id('jog-distance');
+    const option = document.createElement("option");
     option.textContent=distance;
     option.selected = true;
     return selector.appendChild(option);
 }
 
-var runTime = 0;
+let runTime = 0;
 
-function setButton(name, isEnabled, color, text) {
-    var button = id(name);
+const setButton = (name, isEnabled, color, text) => {
+    const button = id(name);
     button.disabled = !isEnabled;
     button.style.backgroundColor = color;
     button.innerText = text;
 }
 
-var leftButtonHandler;
-function setLeftButton(isEnabled, color, text, click) {
+let leftButtonHandler;
+const setLeftButton = (isEnabled, color, text, click) => {
     setButton('btn-start', isEnabled, color, text);
     leftButtonHandler = click;
 }
-function doLeftButton(event) {
+const doLeftButton = (event) => {
     if (leftButtonHandler) {
         leftButtonHandler();
     }
 }
 
-var rightButtonHandler;
-function setRightButton(isEnabled, color, text, click) {
+let rightButtonHandler;
+const setRightButton = (isEnabled, color, text, click) => {
     setButton('btn-pause', isEnabled, color, text);
     rightButtonHandler = click;
 }
-function doRightButton(event) {
+const doRightButton = (event) => {
     if (rightButtonHandler) {
         rightButtonHandler();
     }
 }
 
-var green = '#86f686';
-var red = '#f64646';
-var gray = '#f6f6f6';
+let green = '#86f686';
+let red = '#f64646';
+let gray = '#f6f6f6';
 
-function setRunControls() {
+const setRunControls = () => {
     if (gCodeLoaded) {
         // A GCode file is ready to go
         setLeftButton(true, green, 'Start', runGCode);
@@ -375,13 +371,13 @@ function setRunControls() {
     }
 }
 
-var grblReportingUnits = 0;
-var startTime = 0;
+let grblReportingUnits = 0;
+let startTime = 0;
 
-var spindleDirection = ''
-var spindleSpeed = ''
+let spindleDirection = ''
+let spindleSpeed = ''
 
-function stopAndRecover() {
+const stopAndRecover = () => {
     stopGCode();
     // To stop GRBL you send a reset character, which causes some modes
     // be reset to their default values.  In particular, it sets G21 mode,
@@ -389,22 +385,22 @@ function stopAndRecover() {
     requestModes();
 }
 
-var oldCannotClick = null;
+let oldCannotClick = null;
 
-function updateModal() {
-    var newUnits = modal.units == 'G21' ? 'mm' : 'Inch';
+const updateModal = () => {
+    const newUnits = modal.units == 'G21' ? 'mm' : 'Inch';
     if (getText('units') != newUnits) {
         setText('units', newUnits);
         setJogSelector(modal.units);
     }
     setHTML('gcode-states', modal.modes || "GCode State");
     setText('wpos-label', modal.wcs);
-    var distanceText = modal.distance == 'G90'
+    const distanceText = modal.distance == 'G90'
 	             ? modal.distance
 	             : "<div style='color:red'>" + modal.distance + "</div>";
     setHTML('distance', distanceText);
 
-    var modeText = modal.distance + " " +
+    const modeText = modal.distance + " " +
                    modal.wcs + " " +
                    modal.units + " " +
                    "T" + modal.tool + " " +
@@ -415,18 +411,18 @@ function updateModal() {
 
 }
 
-function updateDRO() {
+const updateDRO = () => {
 }
 
-function showGrblState() {
+const showGrblState = () => {
     if (!grblstate) {
         return;
     }
     updateModal()
-    var stateName = grblstate.stateName;
+    const stateName = grblstate.stateName;
 
     // Unit conversion factor - depends on both $13 setting and parser units
-    var factor = 1.0;
+    let factor = 1.0;
 
     //  spindleSpeed = grblstate.spindleSpeed;
     //  spindleDirection = grblstate.spindle;
@@ -435,7 +431,7 @@ function showGrblState() {
     //  rapidOverride = OVR.rapid/100.0;
     //  spindleOverride = OVR.spindle/100.0;
 
-    var mmPerInch = 25.4;
+    const mmPerInch = 25.4;
     switch (modal.units) {
         case 'G20':
             factor = grblReportingUnits === 0 ? 1/mmPerInch : 1.0 ;
@@ -445,7 +441,7 @@ function showGrblState() {
             break;
     }
 
-    var cannotClick = stateName == 'Run' || stateName == 'Hold';
+    const cannotClick = stateName == 'Run' || stateName == 'Hold';
     // Recompute the layout only when the state changes
     if (oldCannotClick != cannotClick) {
         selectDisabled('.control-pad .form-control', cannotClick);
@@ -499,14 +495,14 @@ function showGrblState() {
     spindleSpeed = grblstate.spindleSpeed ? Number(grblstate.spindleSpeed) : '';
     setText('spindle-speed', spindleSpeed);
 
-    var now = new Date();
+    const now = new Date();
     setText('time-of-day', now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0'));
     if (stateName == 'Run') {
-	var elapsed = now.getTime() - startTime;
+	let elapsed = now.getTime() - startTime;
 	if (elapsed < 0)
 	    elapsed = 0;
-	var seconds = Math.floor(elapsed / 1000);
-	var minutes = Math.floor(seconds / 60);
+	let seconds = Math.floor(elapsed / 1000);
+	const minutes = Math.floor(seconds / 60);
 	seconds = seconds % 60;
 	if (seconds < 10)
 	    seconds = '0' + seconds;
@@ -517,18 +513,18 @@ function showGrblState() {
 
     setText('runtime', runTime);
 
-    var stateText = "";
+    let stateText = "";
     if (stateName == 'Run') {
-        var rateNumber = modal.units == 'G21'
+        const rateNumber = modal.units == 'G21'
 	               ? Number(grblstate.feedrate).toFixed(0)
 	               : Number(grblstate.feedrate/25.4).toFixed(2);
 
-	var rateText = rateNumber +
+	const rateText = rateNumber +
                (modal.units == 'G21' ? ' mm/min' : ' in/min');
 
         stateText = rateText + " " + spindleSpeed + " " + spindleDirection;
     } else {
-        // var stateText = errorText == 'Error' ? "Error: " + errorMessage : stateName;
+        // const stateText = errorText == 'Error' ? "Error: " + errorMessage : stateName;
         stateText = stateName;
     }
     setText('active-state', stateText);
@@ -543,21 +539,21 @@ function showGrblState() {
         displayer.reDrawTool(modal, arrayToXYZ(WPOS));
     }
 
-    var digits = modal.units == 'G20' ? 4 : 2;
+    const digits = modal.units == 'G20' ? 4 : 2;
 
     if (WPOS) {
-        WPOS.forEach( function(pos, index) {
+        WPOS.forEach( (pos, index) => {
             setTextContent('wpos-'+axisNames[index], Number(pos*factor).toFixed(index > 2 ? 2 : digits));
         });
     }
 
-    MPOS.forEach( function(pos, index) {
+    MPOS.forEach( (pos, index) => {
         setTextContent('mpos-'+axisNames[index], Number(pos*factor).toFixed(index > 2 ? 2 : digits));
     });
 }
 
-function addOption(selector, name, value, isDisabled, isSelected) {
-    var opt = document.createElement('option');
+const addOption = (selector, name, value, isDisabled, isSelected) => {
+    const opt = document.createElement('option');
     opt.appendChild(document.createTextNode(name));
     opt.disabled = isDisabled;
     opt.selected = isSelected;
@@ -565,7 +561,7 @@ function addOption(selector, name, value, isDisabled, isSelected) {
     selector.appendChild(opt);
 }
 
-function toggleVisualizer(event) {
+const toggleVisualizer = (event) => {
     if (id('mdifiles').hidden) {
         contractVisualizer();
     } else {
@@ -573,25 +569,25 @@ function toggleVisualizer(event) {
     }
 }
 
-function contractVisualizer() {
+const contractVisualizer = () => {
     id('mdifiles').hidden = false;
     id('setAxis').hidden = false;
     id('control-pad').hidden = false;
     setBottomHeight();
 }
 
-function expandVisualizer() {
+const expandVisualizer = () => {
     id('mdifiles').hidden = true;
     id('setAxis').hidden = true;
     id('control-pad').hidden = true;
     setBottomHeight();
 }
 
-var gCodeFilename = '';
-var gCodeFileExtensions = '';
+let gCodeFilename = '';
+let gCodeFileExtensions = '';
 
-function clearTabletFileSelector(message) {
-    var selector = id('filelist');
+const clearTabletFileSelector = (message) => {
+    const selector = id('filelist');
     selector.length = 0;
     selector.selectedIndex = 0;
     if (message) {
@@ -599,10 +595,10 @@ function clearTabletFileSelector(message) {
     }
 }
 
-function populateTabletFileSelector(files, path) {
-    var selector = id('filelist');
+const populateTabletFileSelector = (files, path) => {
+    const selector = id('filelist');
 
-    var selectedFile = gCodeFilename.split('/').slice(-1)[0];
+    const selectedFile = gCodeFilename.split('/').slice(-1)[0];
 
     // Normalize path
     if(!path.startsWith('/')) {
@@ -617,17 +613,17 @@ function populateTabletFileSelector(files, path) {
     clearTabletFileSelector();
 
     // Filter out files that are not directories or gcode files
-    var extList = gCodeFileExtensions.split(';');
+    const extList = gCodeFileExtensions.split(';');
     files = files.filter(file => extList.includes(file.name.split('.').pop()) || file.size == -1);
 
     // Sort files by name
-    files = files.sort(function(a, b) {
+    files = files.sort((a, b) => {
         return a.name.localeCompare(b.name);
     });
 
     files_file_list = files;
 
-    var inRoot = path === '/';
+    const inRoot = path === '/';
     if (!files.length) {
         addOption(selector, "No files found in /SD" + path, -3, true, selectedFile == '');
 
@@ -638,18 +634,18 @@ function populateTabletFileSelector(files, path) {
         return;
     }
     
-    var legend = 'Load GCode File from /SD' + path;
+    const legend = 'Load GCode File from /SD' + path;
     addOption(selector, legend, -2, true, true);  // A different one might be selected later
 
     if (!inRoot) {
         addOption(selector, '..', -1, false, false);
     }
-    var gCodeFileFound = false;
-    files.forEach(function(file, index) {
+    let gCodeFileFound = false;
+    files.forEach((file, index) => {
         if (file.size == -1) { // Directory
             addOption(selector, file.name + "/", index, false, false);
         } else {
-            var found = file.name == selectedFile;
+            const found = file.name == selectedFile;
             if (found) {
                 gCodeFileFound = true;
             }
@@ -664,14 +660,14 @@ function populateTabletFileSelector(files, path) {
     }
 }
 
-function tabletInit() {
+const tabletInit = () => {
     initDisplayer()
     requestModes()
     askCapabilities()
     downloadPreferences()
 }
 
-function arrayToXYZ(a) {
+const arrayToXYZ = (a) => {
     return {
         x: a[0],
         y: a[1],
@@ -679,14 +675,14 @@ function arrayToXYZ(a) {
     }
 }
 
-function showGCode(gcode) {
+const showGCode = (gcode) => {
     gCodeLoaded = gcode != '';
     if (!gCodeLoaded) {
         id('gcode').value = "(No GCode loaded)";
         displayer.clear();
     } else {
         id('gcode').value = gcode;
-        var initialPosition = {
+        const initialPosition = {
             x: WPOS[0],
             y: WPOS[1],
             z: WPOS[2]
@@ -701,7 +697,7 @@ function showGCode(gcode) {
     setRunControls();
 }
 
-var machineBboxAsked = false;
+let machineBboxAsked = false;
 
 const axisResult = (content) => {
     let query = content.initiator.content;
@@ -714,11 +710,11 @@ const axisResult = (content) => {
     }
 }
 
-function askAxis(name) {
+const askAxis = (name) => {
     sendMessage({type:'cmd', target:'webui', id:'axis', content:name, noToast:true})
 }
 
-function askMachineBbox() {
+const askMachineBbox = () => {
     if (machineBboxAsked) {
         return;
     }
@@ -733,10 +729,11 @@ function askMachineBbox() {
     machineBboxAsked = true;
 }
 
-function nthLineEnd(str, n){
+const nthLineEnd = (str, n) => {
     if (n <= 0)
         return 0;
-    var L= str.length, i= -1;
+    const L = str.length;
+    let i = -1;
     while(n-- && i++<L){
         i= str.indexOf("\n", i);
         if (i < 0) break;
@@ -744,15 +741,15 @@ function nthLineEnd(str, n){
     return i;
 }
 
-function scrollToLine(lineNumber) {
-    var gCodeLines = id('gcode');
-    var lineHeight = parseFloat(getComputedStyle(gCodeLines).getPropertyValue('line-height'));
-    var gCodeText = gCodeLines.value;
+const scrollToLine = (lineNumber) => {
+    const gCodeLines = id('gcode');
+    const lineHeight = parseFloat(getComputedStyle(gCodeLines).getPropertyValue('line-height'));
+    const gCodeText = gCodeLines.value;
 
     gCodeLines.scrollTop = (lineNumber) * lineHeight;
 
-    var start;
-    var end;
+    let start;
+    let end;
     if (lineNumber <= 0) {
         start = 0;
         end = 1;
@@ -765,18 +762,18 @@ function scrollToLine(lineNumber) {
     gCodeLines.setSelectionRange(start, end);
 }
 
-function runGCode() {
+const runGCode = () => {
     gCodeFilename && sendCommand('$sd/run=' + gCodeFilename);
     expandVisualizer();
 }
 
-function tabletSelectGCodeFile(filename) {
-    var selector = id('filelist');
-    var options = Array.from(selector.options);
-    var option = options.find(item => item.text == filename);
+const tabletSelectGCodeFile = (filename) => {
+    const selector = id('filelist');
+    const options = Array.from(selector.options);
+    const option = options.find(item => item.text == filename);
     option.selected = true;
 }
-function tabletLoadGCodeFile(path, size) {
+const tabletLoadGCodeFile = (path, size) => {
     gCodeFilename = path;
     if ((isNaN(size) && (size.endsWith("MB") || size.endsWith("GB"))) || size > 1000000) {
         setHTML('filename', gCodeFilename + " (too large to show)");
@@ -791,10 +788,10 @@ function tabletLoadGCodeFile(path, size) {
     }
 }
 
-function selectFile(event) {
+const selectFile = (event) => {
     tabletClick();
-    var filelist = id('filelist');
-    var index = Number(filelist.options[filelist.selectedIndex].value);
+    const filelist = id('filelist');
+    const index = Number(filelist.options[filelist.selectedIndex].value);
     if (index === -3) {
         // No files
         return;
@@ -809,8 +806,8 @@ function selectFile(event) {
         files_go_levelup();
         return;
     }
-    var file = files_file_list[index];
-    var filename = file.name;
+    const file = files_file_list[index];
+    const filename = file.name;
     if (file.size == -1) { // Directory
         gCodeFilename = '';
         files_enter_dir(filename);
@@ -819,16 +816,16 @@ function selectFile(event) {
     }
 }
 
-function toggleMenu() {
+const toggleMenu = () => {
     id('tablet-dropdown-menu').classList.toggle("hidden");
 }
 
-function menuReset() { stopAndRecover(); toggleMenu(); }
-function menuUnlock() { sendCommand('$X'); toggleMenu(); }
-function menuHomeAll() { sendCommand('$H'); toggleMenu(); }
-function menuHomeA() { sendCommand('$HA'); toggleMenu(); }
-function menuSpindleOff() { sendCommand('M5'); toggleMenu(); }
-function menuFullScreen() {
+const menuReset = () => { stopAndRecover(); toggleMenu(); }
+const menuUnlock = () => { sendCommand('$X'); toggleMenu(); }
+const menuHomeAll = () => { sendCommand('$H'); toggleMenu(); }
+const menuHomeA = () => { sendCommand('$HA'); toggleMenu(); }
+const menuSpindleOff = () => { sendCommand('M5'); toggleMenu(); }
+const menuFullScreen = () => {
     if(document.fullscreenElement) {
         document.exitFullscreen();
     } else {
@@ -837,33 +834,33 @@ function menuFullScreen() {
     toggleMenu();
 }
 
-function requestModes() { sendCommand('$G'); }
+const requestModes = () => { sendCommand('$G'); }
 
-function cycleDistance (up) {
-    var sel = id('jog-distance');
-    var newIndex = sel.selectedIndex + (up ? 1 : -1);
+const cycleDistance  = (up) => {
+    const sel = id('jog-distance');
+    const newIndex = sel.selectedIndex + (up ? 1 : -1);
     if (newIndex >= 0 && newIndex < sel.length) {
         tabletClick();
         sel.selectedIndex = newIndex;
     }
 }
-function clickon (name) {
+const clickon  = (name) => {
     //    $('[data-route="workspace"] .btn').removeClass('active');
-    var button = id(name);
+    const button = id(name);
     button.click();
 }
-var ctrlDown = false;
-var oldIndex = null;;
-var newChild = null;
+let ctrlDown = false;
+let oldIndex = null;;
+let newChild = null;
 
-function shiftUp() {
+const shiftUp = () => {
     if (!newChild) {
         return;
     }
     removeJogDistance(newChild, oldIndex);
     newChild = null;
 }
-function altUp() {
+const altUp = () => {
     if (!newChild) {
         return;
     }
@@ -871,35 +868,35 @@ function altUp() {
     newChild = null;
 }
 
-function shiftDown() {
+const shiftDown = () => {
     if (newChild) {
         return;
     }
-    var sel = id('jog-distance');
-    var distance = sel.value;
+    const sel = id('jog-distance');
+    const distance = sel.value;
     oldIndex = sel.selectedIndex;
     newChild = addJogDistance(distance * 10);
 }
-function altDown() {
+const altDown = () => {
     if (newChild) {
         return;
     }
-    var sel = id('jog-distance');
-    var distance = sel.value;
+    const sel = id('jog-distance');
+    const distance = sel.value;
     oldIndex = sel.selectedIndex;
     newChild = addJogDistance(distance / 10);
 }
 
-function jogClick(name) {
+const jogClick = (name) => {
     clickon(name);
 }
 
 // Reports whether a text input box has focus - see the next comment
-var isInputFocused = false;
-function tabletIsActive() {
+let isInputFocused = false;
+const tabletIsActive = () => {
     return id('tablettab').style.display !== 'none';
 }
-function handleKeyDown(event) {
+const handleKeyDown = (event) => {
     // When we are in a modal input field like the MDI text boxes
     // or the numeric entry boxes, disable keyboard jogging so those
     // keys can be used for text editing.
@@ -964,7 +961,7 @@ function handleKeyDown(event) {
             break
     }
 }
-function handleKeyUp(event) {
+const handleKeyUp = (event) => {
     if (!tabletIsActive()) {
         return;
     }
@@ -984,49 +981,48 @@ function handleKeyUp(event) {
     }
 }
 
-function mdiEnterKey(event) {
+const mdiEnterKey = (event) => {
     if (event.key === 'Enter') {
         MDIcmd(event.target.value);
         event.target.blur();
     }
 }
 
-// setMessageHeight(), with these helper functions, adjusts the size of the message
+// setMessageHeight(), with these helper consts, adjusts the size of the message
 // window to fill the height of the screen.  It would be nice if we could do that
 // solely with CSS, but I did not find a way to do that.  Everything I tried either
 // a) required setting a fixed message window height, or
 // b) the message window would extend past the screen bottom when messages were added
-function height(element) {
+const height = (element) => {
     return element.getBoundingClientRect().height;
 }
-function heightId(eid) {
+const heightId = (eid) => {
     return height(id(eid))
 }
-function bodyHeight() { return height(document.body); }
-function controlHeight() {
+const bodyHeight = () => { return height(document.body); }
+const controlHeight = () => {
     return heightId('nav-panel') + heightId('axis-position') + heightId('setAxis') + heightId('control-pad');
 }
-function navbarHeight() {
+const navbarHeight = () => {
     //return heightId('navbar')
     return 64;
 }
-function setBottomHeight() {
+const setBottomHeight = () => {
     if (!tabletIsActive()) {
         return;
     }
-    var residue = bodyHeight() - navbarHeight() - controlHeight();
+    const residue = bodyHeight() - navbarHeight() - controlHeight();
 
-    var tStyle = getComputedStyle(id('tablettab'))
-    var tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom);
-    tPad += 20;
-    var msgElement = id('status');
+    const tStyle = getComputedStyle(id('tablettab'))
+    const tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom) + 20;
+    const msgElement = id('status');
     msgElement.style.height = (residue - tPad) + 'px';
 }
 
-function files_go_levelup() {
-    var tlist = files_currentPath.split("/");
-    var path = "/";
-    var nb = 1;
+const files_go_levelup = () => {
+    const tlist = files_currentPath.split("/");
+    const path = "/";
+    let nb = 1;
     while (nb < (tlist.length - 2)) {
         path += tlist[nb] + "/";
         nb++;
@@ -1034,31 +1030,31 @@ function files_go_levelup() {
     files_refreshFiles(path, true);
 }
 
-function files_enter_dir(name) {
+const files_enter_dir = (name) => {
     files_refreshFiles(files_currentPath + name + "/", true);
 }
 
-function files_downloadFile(name) {
+const files_downloadFile = (name) => {
     name = '/SD' + name
     sendMessage({type:'download', target:'webui', id:'tablet', url:name});
 }
 
-var fwname
+let fwname
 
-function files_url() {
+const files_url = () => {
     return fwname === 'FluidNC' ? 'upload': 'sdfiles';
 }
 
-function setupFluidNC() {
+const setupFluidNC = () => {
     sendCommand('$Report/Interval=300')
     // Get bounding box
 }
 
-function files_refreshFiles(dir) {
+const files_refreshFiles = (dir) => {
     sendMessage({type:'query', target:'webui', id:'tablet', url:files_url(), args:{action:'list', path:dir}});
 }
 
-function processMessage(eventMsg){
+const processMessage = (eventMsg) => {
     if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=='tablet'||eventMsg.data.id=='command'||eventMsg.data.id=='axis')) {
         switch (eventMsg.data.type) {
             case 'cmd':
@@ -1092,8 +1088,8 @@ function processMessage(eventMsg){
             case 'download':
                 const content = eventMsg.data.content
                 if (content.status=='success'){
-                    var reader = new FileReader();
-                    reader.onload = function() {
+                    const reader = new FileReader();
+                    reader.onload = () => {
                         if(content.initiator.url === 'preferences.json') {
                             processPreferences(reader.result)
                         } else {
@@ -1108,16 +1104,16 @@ function processMessage(eventMsg){
     }
 }
 
-function refreshFiles(event) {
+const refreshFiles = (event) => {
     files_refreshFiles(files_currentPath)
 }
 
-//  function uploadFile() { }
-function internalUploadFile(){
+//  const uploadFile = () => { }
+const internalUploadFile = () => {
     const files = id("uploadBtn").files
     if (files.length>0){
         const reader = new FileReader();
-        reader.onload = function (e) {
+        reader.onload = (e) => {
             const pathname = files[0].name;
             sendMessage({type:'upload', target:"webui", id:'tablet', url:files_url(), content:e.target.result,size:e.target.result.byteLength, path:"/", filename:pathname});
             id("uploadBtn").value="";
@@ -1126,11 +1122,11 @@ function internalUploadFile(){
         reader.readAsArrayBuffer(files[0]);
     }
 };
-function uploadFile() {
+const uploadFile = () => {
     id('uploadBtn').click()
 }
 
-function injectCSS(css) {
+const injectCSS = (css) => {
     let el = document.createElement('style');
     el.textContent = css;
     document.head.appendChild(el);
@@ -1138,7 +1134,7 @@ function injectCSS(css) {
 };
 
 
-function appendContent(el, content) {
+const appendContent = (el, content) => {
     switch (typeof(content)) {
         case 'string':
             el.innerHTML = content;
@@ -1157,8 +1153,8 @@ function appendContent(el, content) {
             break;
     }
 }
-function element(type, id, cssclass, content) {
-    var el = document.createElement(type);
+const element = (type, id, cssclass, content) => {
+    const el = document.createElement(type);
     if (id) {
         el.id = id;
     }
@@ -1168,8 +1164,8 @@ function element(type, id, cssclass, content) {
     appendContent(el, content)
     return el;
 }
-function input(id, cssclass, inptype, placeholder, onchange, content) {
-    var el = element('input', id, cssclass, content)
+const input = (id, cssclass, inptype, placeholder, onchange, content) => {
+    const el = element('input', id, cssclass, content)
     el.type = inptype
     if (typeof placeholder != 'undefined') {
         el.placeholder = placeholder
@@ -1181,32 +1177,32 @@ function input(id, cssclass, inptype, placeholder, onchange, content) {
     el.onblur = inputBlurred
     return el
 }
-function select(id, cssclass, onchange, content) {
-    var el = element('select', id, cssclass, content)
+const select = (id, cssclass, onchange, content) => {
+    const el = element('select', id, cssclass, content)
     if (typeof onchange != 'undefined') {
         el.onchange = onchange
     }
     return el
 }
-function option(content) {
+const option = (content) => {
     return element('option', '', '', content);
 }
-function div(id, cssclass, content) {
+const div = (id, cssclass, content) => {
     return element('div', id, cssclass, content)
 }
-function columns(id, extracssclass, content) {
+const columns = (id, extracssclass, content) => {
     return div(id, 'cols-tablet ' + extracssclass, content)
 }
-function textarea(id, cssclass, placeholder, content) {
-    var el = element('textarea', id, cssclass, content)
+const textarea = (id, cssclass, placeholder, content) => {
+    const el = element('textarea', id, cssclass, content)
     el.placeholder = placeholder
     el.spellcheck = false
     el.readonly = ''
     return el
 }
 
-function button(id, cssclass, content, title, click, value) {
-    var el = element('button', id, cssclass, content)
+const button = (id, cssclass, content, title, click, value) => {
+    const el = element('button', id, cssclass, content)
     el.type = 'button'
     if (typeof title != 'undefined') {
         el.title = title
@@ -1219,18 +1215,18 @@ function button(id, cssclass, content, title, click, value) {
     }
     return el
 }
-function menubutton(id, cssclass, content) {
-    var el = button(id, cssclass, content)
+const menubutton = (id, cssclass, content) => {
+    const el = button(id, cssclass, content)
     el.tabindex = 0
     el.onclick = toggleMenu;
     return el
 }
 
-function col(width, content) {
+const col = (width, content) => {
     return div('', `col-tablet col-${width}`, content)
 }
 
-function makeDRO(axis) {
+const makeDRO = (axis) => {
     return col(3,
                columns(`${axis}-dro`, '', [
                    col(1, div('', 'axis-label', axis.toUpperCase())),
@@ -1240,8 +1236,8 @@ function makeDRO(axis) {
                ])
     )
 }
-function axis_labels(naxes) {
-    var elements = []
+const axis_labels = (naxes) => {
+    const elements = []
     for (let i = 0; i < naxes; i++) {
         elements.push(makeDRO(axisNames[i]))
     }
@@ -1251,7 +1247,7 @@ function axis_labels(naxes) {
     ])
 }
 
-function axis_zero(axis) {
+const axis_zero = (axis) => {
     axis = axis.toUpperCase()
 
     return col(3,
@@ -1262,8 +1258,8 @@ function axis_zero(axis) {
                ])
     )
 }
-function axis_zeroing(naxes) {
-    var elements = []
+const axis_zeroing = (naxes) => {
+    const elements = []
     for (let i = 0; i < naxes; i++) {
         elements.push(axis_zero(axisNames[i]))
     }
@@ -1274,26 +1270,26 @@ function axis_zeroing(naxes) {
                ])
     )
 }
-function jog_distance(name, amount) {
+const jog_distance = (name, amount) => {
     return div('', 'col-tablet col-1',
                button(name, 'btn-tablet set-distance', amount, `Jog by ${amount}`, btnSetDistance, amount)
     )
 }
 
-function jog_control(name, label) {
+const jog_control = (name, label) => {
     return col(2, button(name, 'btn-tablet jog', label, `Move ${label}`, null, label))
 }
 
-function mi(text, theclick) {
-    // var anchor = element('div', '', '', text)
+const mi = (text, theclick) => {
+    // const anchor = element('div', '', '', text)
     // anchor.href = 'javascript:void(0)'
-    var anchor = element('div', '', '', text)
+    const anchor = element('div', '', '', text)
     anchor.onclick = theclick
     anchor.role = 'menuitem'
     return element('li', '', '', anchor)
 }
 
-function loadApp() {
+const loadApp = () => {
     const app =
         div('tablettab', 'tabcontent tablettab', [
             div('nav-panel', 'container nav-panel',
@@ -1413,27 +1409,27 @@ function loadApp() {
 
     document.body.appendChild(app)
 }
-function addListeners() {
+const addListeners = () => {
     window.addEventListener("message", processMessage, false);
 
     let joggers = id('jog-controls');
-    joggers.addEventListener('pointerdown', function(event) {
-        var target = event.target;
+    joggers.addEventListener('pointerdown', (event) => {
+        const target = event.target;
         if (target.classList.contains('jog')) {
             timeout_id = setTimeout(long_jog, hold_time, target);
         }
     });
 
-    joggers.addEventListener('click', function(event) {
+    joggers.addEventListener('click', (event) => {
         clearTimeout(timeout_id);
-        var target = event.target;
+        const target = event.target;
         if (target.classList.contains('jog')) {
             sendMove(target.value);
         }
     });
-    joggers.addEventListener('pointerup', function(event) {
+    joggers.addEventListener('pointerup', (event) => {
         clearTimeout(timeout_id);
-        var target = event.target;
+        const target = event.target;
         if (target.classList.contains('jog')) {
             if (longone) {
                 longone = false;
@@ -1444,9 +1440,9 @@ function addListeners() {
         }
     })
 
-    joggers.addEventListener('pointerout', function(event) {
+    joggers.addEventListener('pointerout', (event) => {
         clearTimeout(timeout_id);
-        var target = event.target;
+        const target = event.target;
         if (target.classList.contains('jog')) {
             if (longone) {
                 longone = false;
