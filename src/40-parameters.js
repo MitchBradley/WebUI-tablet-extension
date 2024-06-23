@@ -1,7 +1,7 @@
 // Copyright (c) 2024 - Mitch Bradley
 // Use of this source code is governed by a GPLv3 license that can be found in the LICENSE file.
 
-function ngc_param_is_rw(id) {
+const ngc_param_is_rw = (id) => {
     return true;
 }
 
@@ -30,21 +30,21 @@ let named_params = new Map();
 
 let user_params = new Map();
 
-function set_numberered_param(id, value) {
+const set_numberered_param = (id, value) => {
     if (id >= 31 && id <= 5000) {
         return user_params.set(id, value);
     }
     return false;
 }
-function get_numberered_param(id) {
+const get_numberered_param = (id) => {
     if (id >= 31 && id <= 5000) {
         let value = user_params.get(id)
         return (value == undefined) ? NaN : value;
     }
     return NaN;
 }
-function set_config_item(name) { return NaN; }
-function get_config_item(name) { return NaN; }
+const set_config_item = (name) => { return NaN; }
+const get_config_item = (name) => { return NaN; }
 
 // JavaScript version of the FluidNC C++ code for predefined parameters
 /*
@@ -102,7 +102,7 @@ const unsupported_sys = [
     '_adaptive_feed'
 ];
 
-function set_numbered_param(id, value) {
+const set_numbered_param = (id, value) => {
     for (const [key, coord_index] of axis_params.entries()) {
         if (key <= id && id < (key + MAX_N_AXIS)) {
             coords[coord_index].set(id - key, value);
@@ -132,7 +132,7 @@ function set_numbered_param(id, value) {
     return false;
 }
 
-function get_numbered_param(id) {
+const get_numbered_param = (id) => {
     for (const [key, coord_index] of axis_params.entries()) {
         if (key <= id && id < (key + MAX_N_AXIS)) {
             return coords[coord_index].get(id - key);
@@ -162,14 +162,14 @@ function get_numbered_param(id) {
     return NaN;
 }
 
-function set_config_item(name, value) {
+const set_config_item = (name, value) => {
     try {
         const gci = new GCodeParam(name, value, false);
         config.group(gci);
     } catch (e) {}
 }
 
-function get_config_item(name) {
+const get_config_item = (name) => {
     try {
         const gci = new GCodeParam(name, 0, true);
         config.group(gci);
@@ -186,7 +186,7 @@ function get_config_item(name) {
 
 const coord_values = [540, 550, 560, 570, 580, 590, 591, 592, 593];
 
-function get_system_param(name) {
+const get_system_param = (name) => {
     const sysn = name.toLowerCase();
     if (work_positions.has(sysn))
         return get_mpos()[work_positions.get(sysn)] - get_wco()[work_positions.get(sysn)];
@@ -226,7 +226,7 @@ function get_system_param(name) {
 
 // The LinuxCNC doc says that the EXISTS syntax is like EXISTS[#<_foo>]
 // For convenience, we also allow EXISTS[_foo]
-function named_param_exists(name) {
+const named_param_exists = (name) => {
     let search;
     if (name.length > 3 && name.startsWith('#<') && name.endsWith('>'))
         search = name.slice(2, -1);
@@ -242,16 +242,16 @@ function named_param_exists(name) {
 }
 */
 
-function isAlpha(c) {
+const isAlpha = (c) => {
   return c.toLowerCase() != c.toUpperCase();
 }
-function get_param(param_ref) {
+const get_param = (param_ref) => {
     if (param_ref.name.length) {
         if (param_ref.name.startsWith('/')) {
             return get_config_item(param_ref.name);
         }
         if (param_ref.name.startsWith('_')) {
-            var result  = get_system_param(param_ref.name);
+            const result  = get_system_param(param_ref.name);
             if (!isNaN(result)) {
                return result;
             }
@@ -261,15 +261,15 @@ function get_param(param_ref) {
     return get_numbered_param(param_ref.id, result);
 }
 
-function read_float(s) {
-    var re = /[+-]?[\d\.]*/
-    var tail = s.line.substr(s.pos)
-    var num = tail.match(re)[0]
+const read_float = (s) => {
+    const re = /[+-]?[\d\.]*/
+    const tail = s.line.substr(s.pos)
+    const num = tail.match(re)[0]
     s.pos += num.length
     return Number(num)
 }
 
-function get_param_ref(s, param_ref) {
+const get_param_ref = (s, param_ref) => {
     // Entry condition - the previous character was #
     let c = s.line[s.pos];
 
@@ -307,7 +307,7 @@ function get_param_ref(s, param_ref) {
     }
 }
 
-function set_param(param_ref, value) {
+const set_param = (param_ref, value) => {
     if (param_ref.name.length) {
         if (param_ref.name.startsWith('/')) {
             set_config_item(param_ref.name, value);
@@ -324,7 +324,7 @@ function set_param(param_ref, value) {
 
 // Gets a numeric value, either a literal number or a #-prefixed parameter value
 // Return NaN on error
-function read_number(s, in_expression) {
+const read_number = (s, in_expression) => {
     let c = s.line[s.pos];
     if (c == '#') {
         s.pos++;
@@ -354,7 +354,7 @@ function read_number(s, in_expression) {
 }
 
 // Process a #PREF=value assignment, with the initial # already consumed
-function assign_param(s) {
+const assign_param = (s) => {
     let param_ref = new ParamRef();
 
     if (!get_param_ref(s, param_ref)) {
@@ -376,7 +376,7 @@ function assign_param(s) {
     return true;
 }
 
-function perform_assignments() {
+const perform_assignments = () => {
     for (const [ref, value] of assignments) {
         set_param(ref, value);
     }

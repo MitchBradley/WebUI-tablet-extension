@@ -1,13 +1,10 @@
 const n_axes = 4
 
-var gCodeLoaded = false;
-var gCodeDisplayable = false;
+let gCodeLoaded = false;
+let gCodeDisplayable = false;
 
-var snd = null;
-var sndok = true;
+let snd = null;
+let sndok = true;
 
-function getVersion() {
-    var version = id('version').innerText
-    return version
-}
+const getVersion = () => id('version').innerText;
 

@@ -1,34 +1,28 @@
 // From utils.js
-function id(name) {
-    return document.getElementById(name);
-}
-function getValue(name, val) {
-    return id(name).value;
-}
-function setTextContent(name, val) {
+const id = (name) =>  document.getElementById(name);
+const getValue = (name, val) => id(name).value;
+const setTextContent = (name, val) => {
     id(name).textContent = val;
 }
-function setHTML(name, val) {
+const setHTML = (name, val) => {
     id(name).innerHTML = val;
 }
-function setText(name, val) {
+const setText = (name, val) => {
     id(name).innerText = val;
 }
-function getText(name) {
-    return id(name).innerText;
-}
-function setDisplay(name, val) {
+const getText = (name) =>  id(name).innerText;
+const setDisplay = (name, val) => {
     id(name).style.display = val;
 }
-function displayNone(name) {
+const displayNone = (name) => {
     setDisplay(name, 'none');
 }
-function displayBlock(name) {
+const displayBlock = (name) => {
     setDisplay(name, 'block');
 }
-function selectDisabled(selector, value) {
+const selectDisabled = (selector, value) => {
     document.querySelectorAll(selector).forEach(
-        function (element) {
+        (element) => {
             element.disabled = value;
         }
     )

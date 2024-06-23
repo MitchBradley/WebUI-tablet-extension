@@ -1,12 +1,12 @@
 // From numpad.js
-var numpad = {
+const numpad = {
   // (A) CREATE NUMPAD HTML
   hwrap: null, // numpad wrapper container
   hpad: null, // numpad itself
   hdisplay: null, // number display
   hbwrap: null, // buttons wrapper
   hbuttons: {}, // individual buttons
-  init: function(){
+  init: function() {
     // (A1) WRAPPER
     numpad.hwrap = document.createElement("div");
     numpad.hwrap.id = "numWrap";
@@ -34,8 +34,8 @@ var numpad = {
     numpad.hpad.appendChild(numpad.hbwrap);
 
     // (A5) BUTTONS
-    var buttonator = function (txt, css, fn) {
-      var button = document.createElement("div");
+    const buttonator = (txt, css, fn) => {
+      const button = document.createElement("div");
       button.innerHTML = txt;
       button.classList.add(css);
       button.addEventListener("click", fn);
@@ -43,24 +43,24 @@ var numpad = {
       numpad.hbuttons[txt] = button;
     };
 
-    var spacer = function() {
+    const spacer =function() {
       buttonator("", "spacer", null);
     }
 
     // 7 8 9 _ Goto
-    for (var i=7; i<=9; i++) { buttonator(i, "num", numpad.digit); }
+    for (let i=7; i<=9; i++) { buttonator(i, "num", numpad.digit); }
     buttonator("&#10502;", "del", numpad.delete);
     spacer();
     buttonator("Goto", "goto", numpad.gotoCoordinate);
 
     // 4 5 6 C _ _
-    for (var i=4; i<=6; i++) { buttonator(i, "num", numpad.digit); }
+    for (let i=4; i<=6; i++) { buttonator(i, "num", numpad.digit); }
     buttonator("C", "clr", numpad.reset);
     spacer();
     spacer();
 
     // 1 2 3 +- Set
-    for (var i=1; i<=3; i++) { buttonator(i, "num", numpad.digit); }
+    for (let i=1; i<=3; i++) { buttonator(i, "num", numpad.digit); }
     buttonator("+-", "num", numpad.toggleSign);
     buttonator("Set", "set", numpad.setCoordinate);
 
@@ -80,7 +80,7 @@ var numpad = {
     nowTarget: null, // Current selected input field
     nowMax: 0, // Current max allowed digits
     
-    keypr: function(event) {
+    keypr: (event) => {
         event.preventDefault();
         switch(event.key) {
             case "Escape":
@@ -128,8 +128,8 @@ var numpad = {
 
     // (B2) NUMBER (0 TO 9)
 
-    digitv: function(n) {
-        var current = numpad.hdisplay.value;
+    digitv: (n) => {
+        const current = numpad.hdisplay.value;
         if (current.length < numpad.nowMax) {
             if (current=="0") {
                 numpad.hdisplay.value = n;
@@ -144,13 +144,13 @@ var numpad = {
     },
 
     // Change sign
-    toggleSign: function(){
+    toggleSign: function() {
         numpad.hdisplay.value = -numpad.hdisplay.value;
     },
 
 
     // ADD DECIMAL POINT
-    dot: function(){
+    dot: function() {
         if (numpad.hdisplay.value.indexOf(".") == -1) {
             if (numpad.hdisplay.value=="0") {
                 numpad.hdisplay.value = "0.";
@@ -161,34 +161,34 @@ var numpad = {
     },
 
     // BACKSPACE
-    delete: function(){
-    var length = numpad.hdisplay.value.length;
+    delete: function() {
+    const length = numpad.hdisplay.value.length;
     if (length == 1) { numpad.hdisplay.value = 0; }
     else { numpad.hdisplay.value = numpad.hdisplay.value.substring(0, length - 1); }
   },
 
   // (B5) CLEAR ALL
-  reset: function(){ numpad.hdisplay.value = "0"; },
+  reset: function() { numpad.hdisplay.value = "0"; },
 
   // (B6) Recall
-  recall: function(){
+  recall: function() {
     numpad.hdisplay.value = numpad.nowTarget.textContent;
   },
 
-  setCoordinate: function(){
+  setCoordinate: function() {
     numpad.nowTarget.textContent = numpad.hdisplay.value;
     setAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
     numpad.hide();
   },
 
-  gotoCoordinate: function(){
+  gotoCoordinate: function() {
     numpad.nowTarget.textContent = numpad.hdisplay.value;
     goAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
     numpad.hide();
   },
 
   // (C) ATTACH NUMPAD TO INPUT FIELD
-  attach: function(opt){
+  attach: function(opt) {
   // OPTIONS
   //  target: required, ID of target field.
   //  max: optional, maximum number of characters. Default 255.
@@ -199,7 +199,7 @@ var numpad = {
     if (opt.decimal === undefined) { opt.decimal = true; }
     
     // (C2) GET + SET TARGET OPTIONS
-    var target = id(opt.target);
+    const target = id(opt.target);
     target.readOnly = true;
     target.dataset.max = opt.max;
     target.dataset.decimal = opt.decimal;
@@ -210,11 +210,9 @@ var numpad = {
 
   // (D) SHOW NUMPAD
   show: function() {
-
-
     // (D1) SET CURRENT DISPLAY VALUE
-    //var cv = this.value;
-    var cv = "";
+    // let cv = this.value;
+    let cv = "";
     if (cv == "") { cv = "0"; }
     numpad.hdisplay.value = cv;
 
@@ -238,6 +236,6 @@ var numpad = {
   },
 
   // (E) HIDE NUMPAD
-  hide: function(){ numpad.hwrap.classList.remove("open"); },
+  hide: function() { numpad.hwrap.classList.remove("open"); },
 };
 // End numpad.js

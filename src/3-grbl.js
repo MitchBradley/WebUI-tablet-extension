@@ -1,22 +1,22 @@
 // From grbl.js
-var interval_status = -1;
-var probe_progress_status = 0;
-var grbl_error_msg = '';
-var WCO = undefined;
-var OVR = { feed: undefined, rapid: undefined, spindle: undefined };
-var MPOS = [0, 0, 0, 0];
-var WPOS = [0, 0, 0, 0];
-var grblaxis = 3;
-var grblzerocmd = 'X0 Y0 Z0';
-var feedrate = [0, 0, 0, 0, 0, 0];
-var last_axis_letter = 'Z';
+let interval_status = -1;
+let probe_progress_status = 0;
+let grbl_error_msg = '';
+let WCO = undefined;
+let OVR = { feed: undefined, rapid: undefined, spindle: undefined };
+let MPOS = [0, 0, 0, 0];
+let WPOS = [0, 0, 0, 0];
+let grblaxis = 3;
+let grblzerocmd = 'X0 Y0 Z0';
+let feedrate = [0, 0, 0, 0, 0, 0];
+let last_axis_letter = 'Z';
 
-var axisNames = ['x', 'y', 'z', 'a', 'b', 'c'];
+const axisNames = ['x', 'y', 'z', 'a', 'b', 'c'];
 
-var modal = { modes: "", plane: 'G17', units: 'G21', wcs: 'G54', distance: 'G90' };
+const modal = { modes: "", plane: 'G17', units: 'G21', wcs: 'G54', distance: 'G90' };
 
-function parseGrblStatus(response) {
-    var grbl = {
+const parseGrblStatus = (response) => {
+    let grbl = {
         stateName: '',
         message: '',
         wco: undefined,
@@ -32,11 +32,11 @@ function parseGrblStatus(response) {
         pins: undefined
     };
     response = response.replace('<','').replace('>','');
-    var fields = response.split('|');
-    fields.forEach(function(field) {
-        var tv = field.split(':');
-        var tag = tv[0];
-        var value = tv[1];
+    const fields = response.split('|');
+    fields.forEach((field) => {
+        const tv = field.split(':');
+        const tag = tv[0];
+        const value = tv[1];
         switch(tag) {
             case "Door":
                 grbl.stateName = tag;
@@ -60,31 +60,31 @@ function parseGrblStatus(response) {
                 grbl.lineNumber = parseInt(value);
                 break;
             case "MPos":
-                grbl.mpos = value.split(',').map( function(v) { return parseFloat(v); } );
+                grbl.mpos = value.split(',').map((v) => { return parseFloat(v); } );
                 break;
             case "WPos":
-                grbl.wpos = value.split(',').map( function(v) { return parseFloat(v); } );
+                grbl.wpos = value.split(',').map((v) => { return parseFloat(v); } );
                 break;
             case "WCO":
-                grbl.wco = value.split(',').map( function(v) { return parseFloat(v); } );
+                grbl.wco = value.split(',').map((v) => { return parseFloat(v); } );
                 break;
             case "FS":
-                var rates = value.split(',');
-                grbl.feedrate = parseFloat(rates[0]);
-                grbl.spindleSpeed = parseInt(rates[1]);
+                const fsrates = value.split(',');
+                grbl.feedrate = parseFloat(fsrates[0]);
+                grbl.spindleSpeed = parseInt(fsrates[1]);
                 break;
             case "Ov":
-                var rates = value.split(',');
+                const ovrates = value.split(',');
                 grbl.ovr = {
-                    feed: parseInt(rates[0]),
-                    rapid: parseInt(rates[1]),
-                    spindle: parseInt(rates[2])
+                    feed: parseInt(ovrates[0]),
+                    rapid: parseInt(ovrates[1]),
+                    spindle: parseInt(ovrates[2])
                 }
                 break;
             case "A":
                 grbl.spindleDirection = 'M5';
                 Array.from(value).forEach(
-                    function(v) {
+                   (v) => {
                         switch (v) {
                             case 'S':
                                 grbl.spindleDirection = 'M3';
@@ -103,7 +103,7 @@ function parseGrblStatus(response) {
                 );
                 break;
             case "SD":
-                var sdinfo = value.split(',');
+                const sdinfo = value.split(',');
                 grbl.sdPercent = parseFloat(sdinfo[0]);
                 grbl.sdName = sdinfo[1];
                 break;
@@ -119,8 +119,8 @@ function parseGrblStatus(response) {
     return grbl;
 }
 
-function clickableFromStateName(state, hasSD) {
-    var clickable = {
+const clickableFromStateName = (state, hasSD) => {
+    const clickable = {
         resume: false,
         pause: false,
         reset: false
@@ -150,20 +150,20 @@ function clickableFromStateName(state, hasSD) {
     return clickable;
 }
 
-function pauseGCode() {
+const pauseGCode = () => {
     sendRealtimeCmd(0x21); // '!'
 }
 
-function resumeGCode() {
+const resumeGCode = () => {
     sendRealtimeCmd(0x7e); // '~'
 }
 
-function stopGCode() {
+const stopGCode = () => {
     sendRealtimeCmd(0x18); // '~'
 }
 
-var grblstate
-function grblProcessStatus(response) {
+let grblstate
+const grblProcessStatus = (response) => {
     grblstate = parseGrblStatus(response);
 
     // Record persistent values of data
@@ -176,25 +176,25 @@ function grblProcessStatus(response) {
     if (grblstate.mpos) {
         MPOS = grblstate.mpos;
         if (WCO) {
-            WPOS = grblstate.mpos.map( function(v,index) { return v - WCO[index]; } );
+            WPOS = grblstate.mpos.map((v,index) => { return v - WCO[index]; } );
         }
     } else if (grblstate.wpos) {
         WPOS = grblstate.wpos;
         if (WCO) {
-            MPOS = grblstate.wpos.map( function(v,index) { return v + WCO[index]; } );
+            MPOS = grblstate.wpos.map((v,index) => { return v + WCO[index]; } );
         }
     }
 
     showGrblState();
 }
 
-function grblGetProbeResult(response) {
-    var tab1 = response.split(":");
+const grblGetProbeResult = (response) => {
+    const tab1 = response.split(":");
     if (tab1.length > 2) {
-        var status = tab1[2].replace("]", "");
+        const status = tab1[2].replace("]", "");
         if (parseInt(status.trim()) == 1) {
             if (probe_progress_status != 0) {
-                var cmd = "$J=G90 G21 F1000 Z" + (parseFloat(getValue('probetouchplatethickness')) +                                                       parseFloat(getValue('proberetract')));
+                const cmd = "$J=G90 G21 F1000 Z" + (parseFloat(getValue('probetouchplatethickness')) +                                                       parseFloat(getValue('proberetract')));
                 sendCommand(cmd)
             }
         } else {
@@ -203,7 +203,7 @@ function grblGetProbeResult(response) {
     }
 }
 
-var modalModes = [
+const modalModes = [
     { name: 'motion', values: [ "G80",  "G0",  "G1",  "G2",  "G3",  "G38.1",  "G38.2",  "G38.3",  "G38.4"] },
     { name: 'wcs', values: [ "G54", "G55", "G56", "G57", "G58", "G59"] },
     { name: 'plane', values: [ "G17", "G18", "G19"] },
@@ -218,12 +218,12 @@ var modalModes = [
     { name: 'parking', values: [ "M56"] }
 ];
 
-function grblGetModal(msg) {
+const grblGetModal = (msg) => {
     modal.modes = msg.replace("[GC:", '').replace(']', '');
-    var modes = modal.modes.split(' ');
+    const modes = modal.modes.split(' ');
     modal.parking = undefined;  // Otherwise there is no way to turn it off
     modal.program = '';  // Otherwise there is no way to turn it off
-    modes.forEach(function(mode) {
+    modes.forEach((mode) => {
         if (mode == 'M9') {
             modal.flood = mode;
             modal.mist = mode;
@@ -235,8 +235,8 @@ function grblGetModal(msg) {
             } else if (mode.charAt(0) === 'S') {
                 modal.spindle = mode.substring(1);
             } else {
-                modalModes.forEach(function(modeType) {
-                    modeType.values.forEach(function(s) {
+                modalModes.forEach((modeType) => {
+                    modeType.values.forEach((s) => {
                         if (mode == s) {
                             modal[modeType.name] = mode;
                         }
@@ -248,7 +248,7 @@ function grblGetModal(msg) {
     showGrblState()
 }
 
-function grblHandleMessage(msg) {
+const grblHandleMessage = (msg) => {
     tabletShowMessage(msg);
 
     if (msg.startsWith('<')) {

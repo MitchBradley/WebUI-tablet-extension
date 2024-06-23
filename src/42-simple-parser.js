@@ -5,7 +5,7 @@
 // translate that to older Javascript
 
 // @param {string} line The G-code line
-const parseLine = () => {
+const parseLine = (() => {
     // http://reprap.org/wiki/G-code#Special_fields
     // The checksum "cs" for a GCode string "cmd" (including its line number) is computed
     // by exor-ing the bytes in the string up to and not including the * character.
@@ -43,21 +43,22 @@ const parseLine = () => {
         options.noParseLine = !!options.noParseLine;
 
         const result = {
-            line: line
+            line: line,
+            words: []
         };
 
         if (options.noParseLine) {
             return result;
         }
 
-        result.words = [];
-
         let ln; // Line number
         let cs; // Checksum
         line = stripComments(line);
         s = new LinePos(line)
 
-        var pos = 0
+        if (s.line.length && s.line[0] == '$') {
+            return result;
+        }
 
         // GCode
         for (s.pos = 0; s.pos < s.line.length; ) {
@@ -110,5 +111,5 @@ const parseLine = () => {
 
         return result;
     };
-}();
+})();
 // End simple-parser.js

@@ -1,4 +1,3 @@
-
 const DEGRAD = 180 / Math.PI;
 const RADDEG = Math.PI / 180;
 const TOLERANCE_EQUAL = 0.00001;
@@ -54,12 +53,12 @@ const NGCUnaryOp = {
     Exists: 14
 };
 
-function execute_binary1(lhs, operation, rhs) {
+const execute_binary1 = (lhs, operation, rhs) => {
     switch (operation) {
         case NGCBinaryOp.DividedBy:
             if (rhs === 0.0 || rhs === -0.0)
-                return NaN
-            return lhs / rhs
+                return NaN;
+            return lhs / rhs;
 
         case NGCBinaryOp.Modulo:
             lhs = lhs % rhs;
@@ -69,20 +68,20 @@ function execute_binary1(lhs, operation, rhs) {
 
         case NGCBinaryOp.Power:
             if (lhs < 0.0 && Math.floor(rhs) !== rhs)
-                return NaN
+                return NaN;
             return Math.pow(lhs, rhs);
 
         case NGCBinaryOp.Times:
             return lhs * rhs;
 
         default:
-            return NaN
+            return NaN;
     }
 
-    return NaN
+    return NaN;
 }
 
-function execute_binary2(lhs, operation, rhs) {
+const execute_binary2 = (lhs, operation, rhs) => {
     switch (operation) {
         case NGCBinaryOp.And2:
             return ((lhs === 0.0) || (rhs === 0.0)) ? 0.0 : 1.0;
@@ -124,13 +123,13 @@ function execute_binary2(lhs, operation, rhs) {
     return NaN;
 }
 
-function execute_binary(lhs, operation, rhs) {
+const execute_binary = (lhs, operation, rhs) => {
     if (operation <= NGCBinaryOp.Binary2)
         return execute_binary1(lhs, operation, rhs);
     return execute_binary2(lhs, operation, rhs);
 }
 
-function execute_unary(operand, operation) {
+const execute_unary = (operand, operation) => {
     switch (operation) {
         case NGCUnaryOp.ABS:
         return (operand < 0.0) ? -operand : operand
@@ -187,7 +186,7 @@ function execute_unary(operand, operation) {
     return operand;
 }
 
-function precedence(op) {
+const precedence = (op) => {
     switch (op) {
         case NGCBinaryOp.RightBracket:
             return 1;
@@ -225,7 +224,7 @@ function precedence(op) {
     return 0;
 }
 
-function read_operation(s) {
+const read_operation = (s) => {
     let c = s.line[s.pos];
     s.pos++;
 
@@ -320,11 +319,8 @@ function read_operation(s) {
     return -1;
 }
 
-function read_operation_unary(s) {
-    let c = s.line[s.pos];
-    s.pos++;
-
-    switch (c) {
+const read_operation_unary = (s) => {
+    switch (s.line[s.pos++]) {
         case 'A':
             if (s.line.slice(s.pos, s.pos + 2) === "BS") {
                 s.pos += 2;
@@ -412,7 +408,7 @@ function read_operation_unary(s) {
     return -1
 }
 
-function read_atan(s) {
+const read_atan = (s) => {
     if (s.line[s.pos] !== '/')
         return Error.ExpressionSyntaxError;
 
@@ -429,15 +425,15 @@ function read_atan(s) {
     return Math.atan2(value[0], argument2) * DEGRAD; // value in radians, convert to degrees
 }
 
-function read_unary(s) {
-    let operation
+const read_unary = (s) => {
+    let operation;
 
     operation = read_operation_unary(s);
     if (operation == -1)
-        return NaN
+        return NaN;
 
     if (s.line[s.pos] !== '[')
-        return NaN
+        return NaN;
 
     s.pos++;
     if (operation[0] === NGCUnaryOp.Exists) {
@@ -448,7 +444,7 @@ function read_unary(s) {
             arg += c;
         }
         if (!c) {
-            return NaN
+            return NaN;
         }
         s.pos++;
         return named_param_exists(arg) ? 1.0 : 0.0;
@@ -463,13 +459,13 @@ function read_unary(s) {
     return execute_unary(value, operation[0]);
 }
 
-function expression(s) {
+const expression = (s) => {
     const values = [];
     const operators = [];
     let stack_index = 1;
 
     if (s.line[s.pos] !== '[') {
-        return NaN
+        return NaN;
     }
 
     s.pos++;
