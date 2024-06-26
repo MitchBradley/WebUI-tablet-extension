@@ -81,6 +81,35 @@ This version works with ESP3D-WEBUI version 3, using its "Extra Content" extensi
 
 ## Development
 
-This program consists of two source files src/tablet.js and src/tablet.css .  The shell script minify.js uses an external cloud-based Javascript minifier service to reduce their size, and then combines them into a single compressed file named build/tablet.html.gz, suitable for use as an ESP3D-WEBUI extension.
+To build a new version, make sure the current directory is the top-level directory (the one that contains this README.md file), then execute one of the following commands.  If you want to set a specific version string, add it to the end of the command line; otherwise an automatically-generated version string will be used.
 
-That file can be uploaded to the Flash filesystem on an ESP3D-WEBUI system and then used via ESP#d-WEBUI's Extra Content mechanism.
+### Build on Linux or MacOS
+
+```
+./build.sh
+```
+
+### Build on Windows
+
+```
+powershell -File build.ps1
+```
+If you have permission problems, try
+a```
+ powershell -executionpolicy bypass -File build.ps1
+```
+
+(build.ps1 was automatically translated from build.sh using ChatGPT, which got it right the first time.  ChatGPT
+also generated the explanation below.)
+
+### Explanation:
+* Version Handling: The script sets the $version variable based on the command-line arguments or the current user and timestamp.
+* Directory Creation: The New-Item cmdlet ensures the build directory exists.
+* Minifying CSS: The script reads the CSS file, sends it to an external cloud-based minifier API, and saves the minified version. It checks for errors in the response.
+* Concatenating JS Files: The script reads all JS files from the src directory and concatenates them into one file.
+* Minifying JS: The script sends the concatenated JS file to the minifier API, saves the minified version, and checks for errors.
+* Combining Files: The script combines the minified CSS, JS, and version information into an HTML file.
+* Gzip Compression: The script compresses the HTML file using gzip (Linux/MacOS) or the System.IO.Compression.GzipStream class (Windows).
+* Output Message: The script prints the location of the final compressed file.
+
+The output file "build/tablet.html.gz" can be uploaded to the Flash filesystem on an ESP3D-WEBUI system and then used via ESP3D-WEBUI's Extra Content mechanism.

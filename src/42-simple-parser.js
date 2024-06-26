@@ -1,4 +1,3 @@
-// From simple-parser.js
 // This file was derived from
 //    https://github.com/cncjs/gcode-parser/blob/master/src/index.js
 // by extracting just the parseLine() function and using Babel to
@@ -54,41 +53,36 @@ const parseLine = (() => {
         let ln; // Line number
         let cs; // Checksum
         line = stripComments(line);
-        s = new LinePos(line)
+        const s = new LinePos(line);
 
         if (s.line.length && s.line[0] == '$') {
             return result;
         }
 
         // GCode
-        for (s.pos = 0; s.pos < s.line.length; ) {
-            const letter = s.line[s.pos++].toUpperCase()
+        for (s.pos = 0; s.pos < s.line.length;) {
+            const letter = s.line[s.pos++].toUpperCase();
 
             if (letter === '#') {
-                let status = assign_param(s)
-                // line = line.substr(s.pos)
+                const status = assign_param(s);
                 continue;
             }
 
-            // Otherwise parse a number, parameter, or expression
-            // that must evaluate to a number
-
-            const value = read_number(s, false)
+            const value = read_number(s, false);
             if (isNaN(value)) {
-                console.log("Bad number")
-                continue
+                console.log("Bad number");
+                continue;
             }
 
             // N: Line number
             if (letter === 'N' && typeof ln === 'undefined') {
-                // Line (block) number in program
-                ln = value
+                ln = value;
                 continue;
             }
 
             // *: Checksum
             if (letter === '*' && typeof cs === 'undefined') {
-                cs = value
+                cs = value;
                 continue;
             }
 
@@ -100,16 +94,15 @@ const parseLine = (() => {
         }
 
         // Line number
-        (typeof (ln) !== 'undefined') && (result.ln = ln);
+        if (typeof ln !== 'undefined') result.ln = ln;
 
         // Checksum
-        (typeof (cs) !== 'undefined') && (result.cs = cs);
-        if (result.cs && (computeChecksum(line) !== result.cs)) {
+        if (typeof cs !== 'undefined') result.cs = cs;
+        if (result.cs && computeChecksum(line) !== result.cs) {
             result.err = true; // checksum failed
         }
-        perform_assignments()
+        perform_assignments();
 
         return result;
     };
 })();
-// End simple-parser.js

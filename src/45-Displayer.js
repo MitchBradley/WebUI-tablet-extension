@@ -2,8 +2,8 @@
 
 const root = window;
 
-let canvas = id("toolpath");
-let tp
+let canvas;
+let tp;
 const initDisplayer = () => {
     canvas = id("toolpath");
     canvas.addEventListener("mouseup", updateGcodeViewerAngle);
@@ -275,7 +275,7 @@ const bboxHandlers = {
         tpBbox.max.y = Math.max(tpBbox.max.y, ps.y, pe.y);
         bboxIsSet = true;
     },
-    addArcCurve: (modal, start, end, center, extraRotations) => {
+    addArcCurve: (modal, start, end, center, rotations) => {
         // To determine the precise bounding box of a circular arc we
         // must account for the possibility that the arc crosses one or
         // more axes.  If so, the bounding box includes the "bulges" of
@@ -430,7 +430,7 @@ const displayHandlers = {
         tp.lineTo(pe.x, pe.y);
         tp.stroke();
     },
-    addArcCurve: (modal, start, end, center, extraRotations) => {
+    addArcCurve: (modal, start, end, center, rotations) => {
         const motion = modal.motion;
 
         const deltaX1 = start.x - center.x;
@@ -449,8 +449,8 @@ const displayHandlers = {
         if (theta1 == theta2) {
             theta2 += Math.PI * ((cw) ? -2 : 2);
         }
-        if (extraRotations > 1) {
-            theta2 += (extraRotations - 1) * Math.PI * ((cw) ? -2 : 2);;
+        if (rotations > 1) {
+            theta2 += (rotations - 1) * Math.PI * ((cw) ? -2 : 2);;
         }
 
         initialMoves = false;

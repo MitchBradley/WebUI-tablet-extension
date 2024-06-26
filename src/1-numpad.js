@@ -1,16 +1,14 @@
-// From numpad.js
 const numpad = {
   // (A) CREATE NUMPAD HTML
-  hwrap: null, // numpad wrapper container
-  hpad: null, // numpad itself
+  hwrap: null,    // numpad wrapper container
+  hpad: null,     // numpad itself
   hdisplay: null, // number display
-  hbwrap: null, // buttons wrapper
-  hbuttons: {}, // individual buttons
+  hbwrap: null,   // buttons wrapper
+  hbuttons: {},   // individual buttons
   init: function() {
     // (A1) WRAPPER
     numpad.hwrap = document.createElement("div");
     numpad.hwrap.id = "numWrap";
-
 
     // (A2) ENTIRE NUMPAD ITSELF
     numpad.hpad = document.createElement("div");
@@ -43,7 +41,7 @@ const numpad = {
       numpad.hbuttons[txt] = button;
     };
 
-    const spacer =function() {
+    const spacer = () => {
       buttonator("", "spacer", null);
     }
 
@@ -144,13 +142,13 @@ const numpad = {
     },
 
     // Change sign
-    toggleSign: function() {
+    toggleSign: () => {
         numpad.hdisplay.value = -numpad.hdisplay.value;
     },
 
 
     // ADD DECIMAL POINT
-    dot: function() {
+    dot: () => {
         if (numpad.hdisplay.value.indexOf(".") == -1) {
             if (numpad.hdisplay.value=="0") {
                 numpad.hdisplay.value = "0.";
@@ -161,34 +159,34 @@ const numpad = {
     },
 
     // BACKSPACE
-    delete: function() {
+    delete: () => {
     const length = numpad.hdisplay.value.length;
     if (length == 1) { numpad.hdisplay.value = 0; }
     else { numpad.hdisplay.value = numpad.hdisplay.value.substring(0, length - 1); }
   },
 
   // (B5) CLEAR ALL
-  reset: function() { numpad.hdisplay.value = "0"; },
+  reset: () => { numpad.hdisplay.value = "0"; },
 
   // (B6) Recall
-  recall: function() {
+  recall: () => {
     numpad.hdisplay.value = numpad.nowTarget.textContent;
   },
 
-  setCoordinate: function() {
+  setCoordinate: () => {
     numpad.nowTarget.textContent = numpad.hdisplay.value;
     setAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
     numpad.hide();
   },
 
-  gotoCoordinate: function() {
+  gotoCoordinate: () => {
     numpad.nowTarget.textContent = numpad.hdisplay.value;
     goAxisByValue(numpad.nowTarget.dataset.axis, numpad.hdisplay.value);
     numpad.hide();
   },
 
   // (C) ATTACH NUMPAD TO INPUT FIELD
-  attach: function(opt) {
+  attach: (opt) => {
   // OPTIONS
   //  target: required, ID of target field.
   //  max: optional, maximum number of characters. Default 255.
@@ -236,6 +234,5 @@ const numpad = {
   },
 
   // (E) HIDE NUMPAD
-  hide: function() { numpad.hwrap.classList.remove("open"); },
+  hide: () => { numpad.hwrap.classList.remove("open"); },
 };
-// End numpad.js

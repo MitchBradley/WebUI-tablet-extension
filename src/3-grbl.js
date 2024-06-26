@@ -1,6 +1,4 @@
-// From grbl.js
 let interval_status = -1;
-let probe_progress_status = 0;
 let grbl_error_msg = '';
 let WCO = undefined;
 let OVR = { feed: undefined, rapid: undefined, spindle: undefined };
@@ -16,7 +14,7 @@ const axisNames = ['x', 'y', 'z', 'a', 'b', 'c'];
 const modal = { modes: "", plane: 'G17', units: 'G21', wcs: 'G54', distance: 'G90' };
 
 const parseGrblStatus = (response) => {
-    let grbl = {
+    const grbl = {
         stateName: '',
         message: '',
         wco: undefined,
@@ -39,7 +37,7 @@ const parseGrblStatus = (response) => {
         const value = tv[1];
         switch(tag) {
             case "Door":
-                grbl.stateName = tag;
+                grbl.stateName = "Door"+value;
                 grbl.message = field;
                 break;
             case "Hold":
@@ -60,13 +58,13 @@ const parseGrblStatus = (response) => {
                 grbl.lineNumber = parseInt(value);
                 break;
             case "MPos":
-                grbl.mpos = value.split(',').map((v) => { return parseFloat(v); } );
+                grbl.mpos = value.split(',').map( (v) => parseFloat(v) );
                 break;
             case "WPos":
-                grbl.wpos = value.split(',').map((v) => { return parseFloat(v); } );
+                grbl.wpos = value.split(',').map( (v) => parseFloat(v) );
                 break;
             case "WCO":
-                grbl.wco = value.split(',').map((v) => { return parseFloat(v); } );
+                grbl.wco = value.split(',').map( (v) => parseFloat(v) );
                 break;
             case "FS":
                 const fsrates = value.split(',');
@@ -84,7 +82,7 @@ const parseGrblStatus = (response) => {
             case "A":
                 grbl.spindleDirection = 'M5';
                 Array.from(value).forEach(
-                   (v) => {
+                    (v) => {
                         switch (v) {
                             case 'S':
                                 grbl.spindleDirection = 'M3';
@@ -130,6 +128,10 @@ const clickableFromStateName = (state, hasSD) => {
             clickable.pause = true;
             clickable.reset = true;
             break;
+        case 'Door1':
+            clickable.reset = true;
+            break;
+        case 'Door0':
         case 'Hold':
             clickable.resume = true;
             clickable.reset = true;
@@ -158,11 +160,26 @@ const resumeGCode = () => {
     sendRealtimeCmd(0x7e); // '~'
 }
 
+const grblReset = () => {
+    if (probe_progress_status != 0) {
+        probe_failed_notification();
+    }
+    sendRealtimeCmd(0x18);
+}
+
 const stopGCode = () => {
-    sendRealtimeCmd(0x18); // '~'
+    grblReset();
 }
 
 let grblstate
+const showGrblState = () => {
+    if (!grblstate) {
+        return;
+    }
+    mainGrblState(grblstate);
+    tabletGrblState(grblstate);
+};
+
 const grblProcessStatus = (response) => {
     grblstate = parseGrblStatus(response);
 
@@ -176,12 +193,12 @@ const grblProcessStatus = (response) => {
     if (grblstate.mpos) {
         MPOS = grblstate.mpos;
         if (WCO) {
-            WPOS = grblstate.mpos.map((v,index) => { return v - WCO[index]; } );
+            WPOS = grblstate.mpos.map( (v,index) => v - WCO[index] );
         }
     } else if (grblstate.wpos) {
         WPOS = grblstate.wpos;
         if (WCO) {
-            MPOS = grblstate.wpos.map((v,index) => { return v + WCO[index]; } );
+            MPOS = grblstate.wpos.map( (v,index) => v + WCO[index] );
         }
     }
 
@@ -194,11 +211,11 @@ const grblGetProbeResult = (response) => {
         const status = tab1[2].replace("]", "");
         if (parseInt(status.trim()) == 1) {
             if (probe_progress_status != 0) {
-                const cmd = "$J=G90 G21 F1000 Z" + (parseFloat(getValue('probetouchplatethickness')) +                                                       parseFloat(getValue('proberetract')));
-                sendCommand(cmd)
+                sendProbeCommand();
+                finalize_probing();
             }
         } else {
-            // probe_failed_notification();
+            probe_failed_notification();
         }
     }
 }
@@ -245,7 +262,11 @@ const grblGetModal = (msg) => {
             }
         }
     });
-    showGrblState()
+    showGrblState();
+}
+
+const grblHandleReset = (msg) => {
+    console.log('Reset detected');
 }
 
 const grblHandleMessage = (msg) => {
@@ -268,6 +289,7 @@ const grblHandleMessage = (msg) => {
     // Handlers for standard Grbl protocol messages
 
     if (msg.startsWith('ok')) {
+        grblHandleOk();
         return;
     }
     if (msg.startsWith('[PRB:')) {
@@ -277,17 +299,20 @@ const grblHandleMessage = (msg) => {
     if (msg.startsWith('[MSG:')) {
         return;
     }
-    if (msg.startsWith('error:') || msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {
+    if (msg.startsWith('error:')) {
+        grblHandleError(msg);
+    }
+    if (msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {
         if (probe_progress_status != 0) {
-            // probe_failed_notification();
+            probe_failed_notification();
         }
         if (grbl_error_msg.length == 0) {
-            grbl_error_msg = msg.trim()
+            grbl_error_msg = translate_text_item(msg.trim());
         }
         return;
     }
     if (msg.startsWith('Grbl ')) {
+        grblHandleReset();
         return;
     }
 }
-// End grbl.js

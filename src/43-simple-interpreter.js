@@ -1,4 +1,3 @@
-// From simple-interpreter.js
 /* eslint no-continue: 0 */
 // This file was derived from
 // https://github.com/cncjs/gcode-interpreter/blob/master/src/Interpreter.js
@@ -140,4 +139,3 @@ class Interpreter {
         }
     }
 }
-// End simple-interpreter.js

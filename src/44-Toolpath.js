@@ -24,8 +24,8 @@ class Toolpath {
     offsetAddLine = function(start, end) {
         this.fn.addLine(this.modal, this.offsetG92(start), this.offsetG92(end));
     }
-    offsetAddArcCurve = function(start, end, center, extraRotations) {
-        this.fn.addArcCurve(this.modal, this.offsetG92(start), this.offsetG92(end), this.offsetG92(center), extraRotations);
+    offsetAddArcCurve = function(start, end, center, rotations) {
+        this.fn.addArcCurve(this.modal, this.offsetG92(start), this.offsetG92(end), this.offsetG92(center), rotations);
     }
 
     position = {
@@ -224,7 +224,7 @@ class Toolpath {
                 v0.y = v1.y + offsetY;
             }
 
-            this.offsetAddArcCurve(v1, v2, v0);
+            this.offsetAddArcCurve(v1, v2, v0, params.P ? Number(params.P) : 1);
 
             // Update position
             this.setPosition(targetPosition.x, targetPosition.y, targetPosition.z);
@@ -286,7 +286,7 @@ class Toolpath {
                 v0.y = v1.y + offsetY;
             }
 
-            this.offsetAddArcCurve(v1, v2, v0);
+            this.offsetAddArcCurve(v1, v2, v0, params.P ? Number(params.P) : 1);
 
             // Update position
             this.setPosition(targetPosition.x, targetPosition.y, targetPosition.z);
@@ -625,7 +625,7 @@ class Toolpath {
 
         const toolpath = new Interpreter({ handlers: this.handlers });
         toolpath.getPosition = function() { return { ...this.position }};
-        toolpath.getModal = function() { return { ...this.modal } };
+        toolpath.getModal = function() { return { ...this.modal }};
         toolpath.setPosition = function(...pos) {
             return this.setPosition(...pos);
         };

@@ -3,7 +3,7 @@
   display:flex;
   flex-wrap: nowrap;
 }
-[class~=col-], .col-tablet { 
+[class~=col-] { 
   width: 100%;
   padding-left: 0.2rem;
 }
@@ -24,11 +24,14 @@
   color: black;
 }
 .btn-tablet {
+  text-align: center;
+}
+.btn-tablet, .mdi-entry {
   width: 100%;
   margin: 0.1rem;
   background: white;
   border: 0.05rem solid #5755d9;
-  border-radius: 0.3rem;
+  border-radius: 0.5rem;
   cursor: pointer;
   display:inline-block;
   font-size:1.3rem;
@@ -36,7 +39,6 @@
   line-height: 1.2rem;
   outline: none;
   padding: 0.25rem 0.4rem;
-  text-align: center;
 }
 #tablettab {
   height: 100%;
@@ -46,34 +48,39 @@
   vertical-align: middle;
   background-color: #ffffff;
 }
-.messages {
+.msg {
   width: 100%;
-  height: 45%;
   max-height: 100%;
   overflow-x: auto;
   overflow-y: scroll;
+  margin: 0.1rem;
   padding: 2px;
-  border-style: solid;
-  border-width: 1px;
-  border-radius: 5px;
-  border-color: rgb(118, 118, 118);
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.5rem;
   text-align:left;
   font-size: 1.0rem;
 }
-#messages {
-  background-color: lightyellow;
+#messagepane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 #gcode-states {
   background-color: azure;
-  height: fit-content;
   overflow-x: auto;
   overflow-y: hidden;
   text-align:left;
+  flex-basis: fit-content;
+}
+#messages {
+  background-color: lightyellow;
+  text-align: left;
+  text-wrap: nowrap;
+  flex: 1 1;
 }
 #gcode {
   background-color: lavenderblush;
-  width: 100%;
-  resize: none;
+  flex: 1 1;
 }
 #tablet-dropdown-menu {
   max-height: 100vh;
@@ -104,11 +111,9 @@
 #control-pad {
   background-color: lightyellow;
 }
+
 .mdi-entry {
-  width:100%;
-  height:100%;
-  border-radius: 0.4rem;
-  border-width: 1px;
+  text-align: left;
 }
 .mposition {
   padding-top: 0.2rem;
@@ -122,13 +127,23 @@
 .pos-name {
   font-size: 1.7rem;
 }
+/* display:flex centers jog-distance */
+#jog-distance-container {
+  display: flex;
+  justify-content: center; /* center vertically */
+  align-items: center;     /* center horizontally */
+
+}
+/* shrink this so it is hard to touch accidentally */
 #jog-distance {
   padding-top: 0;
+  height: 70%;
+  width: 80%;
 }
 .btn-lg {
   width:100%;
   border-width: 1px;
-  border-radius: 5px;
+  border-radius: 0.5rem;
 }
 #nav-panel {
   padding-top: 0.2rem;
@@ -141,10 +156,7 @@
   z-index:1;
   width:2rem;
   height:2rem;
-  margin: 5px;
-}
-#messagepane {
-  height: 100%;
+  margin: 0.1rem;
 }
 #previewpane {
   position: relative;
@@ -153,8 +165,10 @@
   height:100%;
   width:100%;
   z-index:0;
+  margin: 0.1rem;
   border: 0.05rem solid #5755d9;
-  border-radius: 0.3rem;
+  border-radius: 0.5rem;
+  user-select: none;
 }
 #filename {
   position:absolute;
@@ -163,6 +177,7 @@
   z-index:1;
   height:4rem;
   margin: 5px;
+  user-select: none;
 }
 /* (A) WRAPPER */
 #numWrap {
