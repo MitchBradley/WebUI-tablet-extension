@@ -21,7 +21,7 @@ jobs:
           echo "Got release version ${{ steps.release.outputs.version }}"
           echo "Upload release artifacts to ${{ steps.release.outputs.upload_url }}"
       - name: Minify and package
-        run: ./minify.sh
+        run: ./build.sh
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
