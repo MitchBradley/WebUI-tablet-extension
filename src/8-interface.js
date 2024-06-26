@@ -43,7 +43,7 @@ const JogFeedrate = (axisAndDistance) => {
 }
 
 const beep = (vol, hz, ms) => {
-    //      useUiContextFn.haptic()
+    sendMessage({type:'sound', target:'webui', id:'sound', content:'seq', seq: [{ f:hz, d:ms }]});
 }
 
 const enterFullscreen = () => {
