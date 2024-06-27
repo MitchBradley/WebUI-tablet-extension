@@ -15,7 +15,7 @@ const askAxis = (name) => {
 }
 
 const askCapabilities = () => {
-    sendMessage({type:'capabilities', target:'webui', id:'tablet'})
+    sendMessage({type:'capabilities', target:'webui', id:'connection'})
 }
 
 const downloadPreferences = () => {
@@ -92,7 +92,7 @@ const axisResult = (content) => {
 }
 
 const processMessage = (eventMsg) => {
-    if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=='tablet'||eventMsg.data.id=='command'||eventMsg.data.id=='axis')) {
+    if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=='tablet'||eventMsg.data.id=='command'||eventMsg.data.id=='axis'||eventMsg.data.id=='connection')) {
         switch (eventMsg.data.type) {
             case 'cmd':
                 if (eventMsg.data.id == 'axis') {
