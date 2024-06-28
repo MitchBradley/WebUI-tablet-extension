@@ -401,21 +401,21 @@ const loadApp = () => {
                         columns('', '', [
                             div('', 'col-tablet col-2 axis-label', 'Feed'),
                             div('feed', 'col-tablet col-2 info-button', "1000"),
-                            override('<<', '\x92', 'Decrease feedrate by 10%'),
-                            override('<', '\x94', 'Decrease feedrate by 1%'),
+                            override('--', '\x92', 'Decrease feedrate by 10%'),
+                            override('-', '\x94', 'Decrease feedrate by 1%'),
                             col(2, button('feed-ovr', 'btn-tablet info-button', '100%', 'Cancel feed override', btnFeedOvrCancel, '')),
-                            override('>', '\x93', 'Increase feedrate by 1%'),
-                            override('>>', '\x91', 'Increase feedrate by 10%')
+                            override('+', '\x93', 'Increase feedrate by 1%'),
+                            override('++', '\x91', 'Increase feedrate by 10%')
                         ]),
                         columns('', '', [
                             div('', 'col-tablet col-3 axis-label', 'Spindle'),
                             div('spindle-direction', 'col-tablet col-1 axis-label', ''),
                             div('spindle-speed', 'col-tablet col-2 info-button', "3000"),
-                            override('<<', '\x9b', 'Decrease spindle speed by 10%'),
-                            override('<', '\x9d', 'Decrease spindle speed by 1%'),
+                            override('--', '\x9b', 'Decrease spindle speed by 10%'),
+                            override('-', '\x9d', 'Decrease spindle speed by 1%'),
                             col(2, button('spindle-ovr', 'btn-tablet info-button', '100%', 'Cancel spindle override', btnSpindleOvrCancel, '')),
-                            override('>', '\x9c', 'Increase spindle speed by 1%'),
-                            override('>>', '\x9a', 'Increase spindle speed by 10%')
+                            override('++', '\x9c', 'Increase spindle speed by 1%'),
+                            override('++', '\x9a', 'Increase spindle speed by 10%')
                         ])
                     ]),
                 ]),
