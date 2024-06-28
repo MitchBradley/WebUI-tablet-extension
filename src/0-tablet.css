@@ -1,0 +1,184 @@
+.cols-tablet {
+  width: 100%;
+  display:flex;
+  flex-wrap: nowrap;
+}
+.col-tablet {
+  margin-right: 0.1rem;
+}
+[class~=col-] {
+  width: 100%;
+  padding-left: 0.2rem;
+}
+.disabled {
+  cursor: not-allowed;
+}
+.hidden {
+  display: none !important;
+}
+.btn-tablet:hover {
+  background: #e0e0e0
+}
+.btn-tablet:active {
+  background: #d0f0d0
+}
+.btn-tablet:disabled {
+  background: #f0f0f0;
+  color: black;
+}
+.btn-tablet {
+  text-align: center;
+}
+.btn-tablet, .mdi-entry {
+  width: 100%;
+  /* margin: 0.1rem; */
+  background: white;
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display:inline-block;
+  font-size:1.3rem;
+  height: 2.4rem;
+  line-height: 1.2rem;
+  outline: none;
+/*  padding: 0.25rem 0.4rem; */
+}
+#tablettab {
+  height: 100%;
+  padding: 5px;
+  font-size: 1.1rem;
+  text-align: center;
+  vertical-align: middle;
+  background-color: #ffffff;
+}
+.msg {
+  width: 100%;
+  max-height: 100%;
+  overflow-x: auto;
+  overflow-y: scroll;
+  margin: 0.1rem;
+  padding: 2px;
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.5rem;
+  text-align:left;
+  font-size: 1.0rem;
+}
+#messagepane {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#gcode-states {
+  background-color: azure;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align:left;
+  flex-basis: fit-content;
+}
+#messages {
+  background-color: lightyellow;
+  text-align: left;
+  text-wrap: nowrap;
+  flex: 1 1;
+}
+#gcode {
+  background-color: lavenderblush;
+  flex: 1 1;
+}
+#tablet-dropdown-menu {
+  max-height: 100vh;
+}
+.axis-label {
+  font-size: 1.6rem;
+}
+#axis-position {
+  background-color: azure;
+  overflow: hidden;
+  text-align: center;
+}
+.area {
+  padding-top: 12px;
+  padding-bottom: 8px;
+  padding-right: 8px;
+}
+.area2 {
+  padding-bottom: 8px;
+  padding-right: 8px;
+}
+#mdifiles {
+  background-color: lavenderblush;
+}
+#setAxis {
+  background-color: azure;
+}
+#control-pad {
+  background-color: lightyellow;
+}
+
+.mdi-entry {
+  text-align: left;
+}
+.mposition {
+  padding-top: 0.2rem;
+  font-size: 1.4rem;
+  color: #606060;
+}
+.info-button {
+  padding-top: 0.1rem;
+  font-size: 1.4rem;
+}
+.pos-name {
+  font-size: 1.7rem;
+}
+/* display:flex centers jog-distance */
+#jog-distance-container {
+  display: flex;
+  justify-content: center; /* center vertically */
+  align-items: center;     /* center horizontally */
+
+}
+/* shrink this so it is hard to touch accidentally */
+#jog-distance {
+  padding-top: 0;
+  height: 70%;
+  width: 80%;
+}
+.btn-lg {
+  width:100%;
+  border-width: 1px;
+  border-radius: 0.5rem;
+}
+#nav-panel {
+  padding-top: 0.2rem;
+  font-size: 1.6rem;
+}
+#expand-button {
+  position:absolute;
+  top:0;
+  right:0;
+  z-index:1;
+  width:2rem;
+  height:2rem;
+  margin: 0.1rem;
+}
+#previewpane {
+  position: relative;
+}
+#toolpath {
+  height:100%;
+  width:100%;
+  z-index:0;
+  margin: 0.1rem;
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.5rem;
+  user-select: none;
+}
+#filename {
+  position:absolute;
+  top:0;
+  left:0;
+  z-index:1;
+  height:4rem;
+  margin: 5px;
+  user-select: none;
+}

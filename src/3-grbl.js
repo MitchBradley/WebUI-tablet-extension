@@ -1,7 +1,7 @@
 let interval_status = -1;
-let grbl_error_msg = '';
 let WCO = undefined;
 let OVR = { feed: undefined, rapid: undefined, spindle: undefined };
+let OVRchanged = false;
 let MPOS = [0, 0, 0, 0];
 let WPOS = [0, 0, 0, 0];
 let grblaxis = 3;
@@ -78,6 +78,11 @@ const parseGrblStatus = (response) => {
                     rapid: parseInt(ovrates[1]),
                     spindle: parseInt(ovrates[2])
                 }
+                if ((!OVR) || grbl.ovr.feed != OVR.feed || grbl.ovr.rapid != OVR.rapid || grbl.ovr.spindle != OVR.spindle) {
+                    OVR = grbl.ovr;
+                    OVRchanged = true;
+                }
+
                 break;
             case "A":
                 grbl.spindleDirection = 'M5';
@@ -153,18 +158,18 @@ const clickableFromStateName = (state, hasSD) => {
 }
 
 const pauseGCode = () => {
-    sendRealtimeCmd(0x21); // '!'
+    sendRealtimeCmd('\x21'); // '!'
 }
 
 const resumeGCode = () => {
-    sendRealtimeCmd(0x7e); // '~'
+    sendRealtimeCmd('\x7e'); // '~'
 }
 
 const grblReset = () => {
     if (probe_progress_status != 0) {
         probe_failed_notification();
     }
-    sendRealtimeCmd(0x18);
+    sendRealtimeCmd('\x18');
 }
 
 const stopGCode = () => {
@@ -186,9 +191,6 @@ const grblProcessStatus = (response) => {
     // Record persistent values of data
     if (grblstate.wco) {
         WCO = grblstate.wco;
-    }
-    if (grblstate.ovr) {
-        OVR = grblstate.ovr;
     }
     if (grblstate.mpos) {
         MPOS = grblstate.mpos;
@@ -267,6 +269,7 @@ const grblGetModal = (msg) => {
 
 const grblHandleReset = (msg) => {
     console.log('Reset detected');
+    setupFluidNC();
 }
 
 const grblHandleMessage = (msg) => {
@@ -305,9 +308,6 @@ const grblHandleMessage = (msg) => {
     if (msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {
         if (probe_progress_status != 0) {
             probe_failed_notification();
-        }
-        if (grbl_error_msg.length == 0) {
-            grbl_error_msg = translate_text_item(msg.trim());
         }
         return;
     }

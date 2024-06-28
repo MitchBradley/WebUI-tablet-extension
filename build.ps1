@@ -10,11 +10,14 @@ if (-Not (Test-Path -Path "build")) {
     New-Item -ItemType Directory -Path "build"
 }
 
+# Concatenate CS files
+Get-Content -Path "src/*.css" -Raw | Out-File -FilePath "build/all.css" -Encoding ascii
+
 # Minify CSS
-$cssData = Get-Content -Raw -Path "src/tablet.css"
+$cssData = Get-Content -Raw -Path "build/all.css"
 $response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/cssminifier/api/raw" -Body @{input=$cssData}
 if ($response -match '^{\"errors') {
-    Write-Host "Error while minifying tablet.css"
+    Write-Host "Error while minifying all.css"
     exit
 }
 $response | Out-File -FilePath "build/tablet-min.css" -Encoding ascii
@@ -26,7 +29,7 @@ Get-Content -Path "src/*.js" -Raw | Out-File -FilePath "build/all.js" -Encoding 
 $jsData = Get-Content -Raw -Path "build/all.js"
 $response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/javascript-minifier/api/raw" -Body @{input=$jsData}
 if ($response -match '^{\"errors') {
-    Write-Host "Error while minifying tablet.js"
+    Write-Host "Error while minifying all.js"
     $response.Replace('\n', "`n")
     exit
 }

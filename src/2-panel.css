@@ -1,0 +1,65 @@
+
+/* Panel Extension */
+@media (max-width: 720px) {
+  #tablettab {
+    font-size: 16px;
+    margin: 0;
+    padding: 5px;
+  }
+
+  #nav-panel, #axis-position, #setAxis, #control-pad,
+  #messagepane #gcode-states, #messagepane #messages,
+  #expand-button,
+  #mdifiles div:nth-child(-n+4), /* GCode Command and MDI buttons */
+  #mdifiles div:nth-child(6),    /* Upld button */
+  #mdifiles div:nth-child(8)     /* Refr button */
+  {
+    display: none;
+  }
+
+  #mdifiles div:nth-child(5) {
+    width: 70%;
+  }
+
+  #mdifiles div:nth-child(7) {
+    width: 18%;
+  }
+
+  #mdifiles.area {
+    padding-top: 3px !important;
+  }
+
+  #previewpane {
+    position: absolute;
+    top: 152px;
+    width: 97%;
+    height: 358px;
+  }
+
+  #gcode {
+    position: absolute;
+    width: 96%;
+    height: 90px;
+    font-family: "SF Mono", "Segoe UI Mono", "Roboto Mono", Menlo, Courier, monospace;
+    font-size: 14px;
+  }
+
+  #gcode, #mdifiles {
+    background-color: inherit;
+  }
+
+  .btn-tablet {
+    height: auto;
+    font-size: 16px;
+  }
+
+  #fsBtn {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 10px;
+    margin-right: 10px;
+    width: 35px;
+  }
+}

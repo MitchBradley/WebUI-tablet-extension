@@ -31,8 +31,7 @@ const sendCommand = (cmd) => {
     sendMessage({type:'cmd', target:'webui', id:'command', content:cmd, noDispatch:true})
 }
 const sendRealtimeCmd = (code) => {
-    const cmd = String.fromCharCode(code)
-    sendCommand(cmd)
+    sendCommand(code);
 }
 
 
@@ -44,21 +43,6 @@ const JogFeedrate = (axisAndDistance) => {
 
 const beep = (vol, hz, ms) => {
     sendMessage({type:'sound', target:'webui', id:'sound', content:'seq', seq: [{ f:hz, d:ms }]});
-}
-
-const enterFullscreen = () => {
-    try {
-        document.querySelector("body").requestFullscreen(); 
-        // document.documentElement.requestFullscreen();
-    } catch (exception) {
-        try {
-            document.documentElement.webkitRequestFullscreen();
-        } catch (exception) {
-            return;
-        }
-    }
-    messages.rows = 4;
-    messages.scrollTop = messages.scrollHeight;
 }
 
 const toggleDropdown = () => {
@@ -112,7 +96,7 @@ const processMessage = (eventMsg) => {
                 const con = eventMsg.data.content
                 if (con.status=='success'){
                     const fileslist = JSON.parse(con.response);
-                    populateTabletFileSelector(fileslist.files, fileslist.path);
+                    populateTabletFileSelector(fileslist.files, fileslist.path, fileslist.status);
                 } else {
                     console.log('query fail',con);
                     //TBD
@@ -317,6 +301,10 @@ const jog_control = (name, label) => {
     return col(2, button(name, 'btn-tablet jog', label, `Move ${label}`, null, label))
 }
 
+const override = (label, value, help) => {
+    return col(1, button('', 'btn-tablet feed-ovr', label, help, btnOverride, value))
+}
+
 const mi = (text, theclick) => {
     // const anchor = element('div', '', '', text)
     // anchor.href = 'javascript:void(0)'
@@ -341,7 +329,6 @@ const loadApp = () => {
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('ul', 'tablet-dropdown-menu', 'menu', [
-                            mi("Full Screen", menuFullscreen),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
@@ -358,7 +345,7 @@ const loadApp = () => {
                     columns('', 'jog-row', [
                         div('distance', 'col-tablet col-2 info-button', ""),
                         jog_control('jog-y-plus', 'Y+'),
-                        col(2, " "),
+                        col(2, ""),
                         jog_control('jog-z-plus', 'Z+'),
                         jog_distance('jog00', '0.001'),
                         jog_distance('jog01', '0.01'),
@@ -368,10 +355,7 @@ const loadApp = () => {
 
                     columns('', 'jog-row', [
                         jog_control('jog-x-minus', 'X-'),
-                        col(2, [
-                            div('spindle-speed', 'col-tablet col-8 info-button spindle'),
-                            div('spindle-direction', 'col-tablet col-4 info-button spindle')
-                        ]),
+                        col(2, ''),
                         jog_control('jog-x-plus', 'X+'),
                         div('jog-distance-container', 'col-tablet col-2', [
                             select('jog-distance', 'btn-tablet form-control jog-selector', null, [
@@ -412,12 +396,34 @@ const loadApp = () => {
                         jog_distance('jog23', '5')
                     ]),
                 ]),
+                div('overrides', '', [
+                    columns('ovr-controls', 'ovr-row', [
+                        columns('', '', [
+                            div('', 'col-tablet col-2 axis-label', 'Feed'),
+                            div('feed', 'col-tablet col-2 info-button', "1000"),
+                            override('<<', '\x92', 'Decrease feedrate by 10%'),
+                            override('<', '\x94', 'Decrease feedrate by 1%'),
+                            col(2, button('feed-ovr', 'btn-tablet info-button', '100%', 'Cancel feed override', btnFeedOvrCancel, '')),
+                            override('>', '\x93', 'Increase feedrate by 1%'),
+                            override('>>', '\x91', 'Increase feedrate by 10%')
+                        ]),
+                        columns('', '', [
+                            div('', 'col-tablet col-3 axis-label', 'Spindle'),
+                            div('spindle-direction', 'col-tablet col-1 axis-label', ''),
+                            div('spindle-speed', 'col-tablet col-2 info-button', "3000"),
+                            override('<<', '\x9b', 'Decrease spindle speed by 10%'),
+                            override('<', '\x9d', 'Decrease spindle speed by 1%'),
+                            col(2, button('spindle-ovr', 'btn-tablet info-button', '100%', 'Cancel spindle override', btnSpindleOvrCancel, '')),
+                            override('>', '\x9c', 'Increase spindle speed by 1%'),
+                            override('>>', '\x9a', 'Increase spindle speed by 10%')
+                        ])
+                    ]),
+                ]),
             ]),
-
             columns('mdifiles', 'area mdifiles', [
-                col(2, input('mditext0', 'mdi-entry', 'text', "GCode Command", null, "")),
+                col(2, input('mditext0', 'mdi-entry', 'text', "GCode", null, "")),
                 col(1, button('mdi0', 'btn-tablet mdi-go', 'MDI', 'Submit GCode Command', btnMDI, 'mditext0')),
-                col(2, input('mditext1', 'mdi-entry', 'text', "GCode Command", null, "")),
+                col(2, input('mditext1', 'mdi-entry', 'text', "GCode", null, "")),
                 col(1, button('mdi1', 'btn-tablet mdi-go', "MDI", "Submit GCode Command", btnMDI, 'mditext1')),
                 col(3,
                     select('filelist', 'mdi-entry', selectFile, [
@@ -442,10 +448,10 @@ const loadApp = () => {
                 ]),
             ]),
             input('uploadBtn', 'd-none', 'file', null, internalUploadFile, ""),
-            button('fsBtn', 'btn-tablet d-none', "[ ]" , "Full Screen",  menuFullscreen, '')
         ])
 
     document.body.appendChild(app)
+    id('ovr-controls').hidden = true;
 }
 
 const addInterfaceListeners = () => {
