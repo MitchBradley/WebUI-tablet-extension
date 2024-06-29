@@ -5,6 +5,7 @@ cat src/*.css >build/all.css
 curl -s -X POST --data-urlencode input@build/all.css https://www.toptal.com/developers/cssminifier/api/raw >build/tablet-min.css
 if head -1 build/tablet-min.css | grep -q '^{"errors' ; then 
     echo "Error while minifying all.css"
+    sed -s "s/\\\\n/\n/g" <build/tablet-min.css
     exit
 fi
 cat src/*.js >build/all.js
