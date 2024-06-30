@@ -18,22 +18,22 @@
   }
 
   #mdifiles div:nth-child(5) {
-    width: 70%;
+    width: 80%;
   }
 
   #mdifiles div:nth-child(7) {
-    width: 18%;
+    width: 20%;
   }
 
   #mdifiles.area {
-    padding-top: 3px !important;
+    padding: 2px 0px 4px 2px;
   }
 
   #previewpane {
     position: absolute;
-    top: 152px;
-    width: 97%;
-    height: 358px;
+    top: 143px;
+    width: 96%;
+    height: 371px;
   }
 
   #gcode {
@@ -42,24 +42,20 @@
     height: 90px;
     font-family: "SF Mono", "Segoe UI Mono", "Roboto Mono", Menlo, Courier, monospace;
     font-size: 14px;
+    resize: none;
   }
 
   #gcode, #mdifiles {
     background-color: inherit;
   }
 
-  .btn-tablet {
-    height: auto;
+  .btn-tablet, .mdi-entry {
+    height: 1.8rem;
     font-size: 16px;
   }
 
-  #fsBtn {
-    display: block !important;
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin-top: 10px;
-    margin-right: 10px;
-    width: 35px;
+  .btn-tablet, .mdi-entry, #gcode, #toolpath {
+    border: 0.05rem solid #bcc3ce;
+    border-radius: 0.2rem;
   }
 }
