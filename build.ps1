@@ -1,3 +1,12 @@
+Function Write-ErrorDetails($Exception) {
+    $_.Exception.Message
+    if($_.ErrorDetails.Message) {
+        "Error Details: "
+        $ErrorJson = $_.ErrorDetails.Message | ConvertFrom-Json
+        $ErrorJson.errors | Format-List
+    }
+}
+
 # Set version
 if ($args.Length -eq 0) {
     $version = "$env:USERNAME $(Get-Date -Format s)"
@@ -15,25 +24,28 @@ Get-Content -Path "src/*.css" -Raw | Out-File -FilePath "build/all.css" -Encodin
 
 # Minify CSS
 $cssData = Get-Content -Raw -Path "build/all.css"
-$response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/cssminifier/api/raw" -Body @{input=$cssData}
-if ($response -match '^{\"errors') {
-    Write-Host "Error while minifying all.css"
-    exit
+try {
+    $response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/cssminifier/api/raw" -Body @{input=$cssData}
+    $response | Out-File -FilePath "build/tablet-min.css" -Encoding ascii
+} catch {
+    Write-Host "Error while minifying all.css" -ForegroundColor Red
+    Write-ErrorDetails $_
+    exit 1
 }
-$response | Out-File -FilePath "build/tablet-min.css" -Encoding ascii
 
 # Concatenate JS files
 Get-Content -Path "src/*.js" -Raw | Out-File -FilePath "build/all.js" -Encoding ascii
 
 # Minify JS
 $jsData = Get-Content -Raw -Path "build/all.js"
-$response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/javascript-minifier/api/raw" -Body @{input=$jsData}
-if ($response -match '^{\"errors') {
-    Write-Host "Error while minifying all.js"
-    $response.Replace('\n', "`n")
-    exit
+try {
+    $response = Invoke-RestMethod -Method Post -Uri "https://www.toptal.com/developers/javascript-minifier/api/raw" -Body @{input=$jsData}
+    $response | Out-File -FilePath "build/tablet-min.js" -Encoding ascii
+} catch {
+    Write-Host "Error while minifying all.js" -ForegroundColor Red
+    Write-ErrorDetails $_
+    exit 1
 }
-$response | Out-File -FilePath "build/tablet-min.js" -Encoding ascii
 
 # Combine and create the final HTML
 $style = Get-Content -Raw -Path "build/tablet-min.css"
