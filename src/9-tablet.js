@@ -802,11 +802,18 @@ const cycleDistance = (up) => {
     }
 };
 
+const downEvent = new PointerEvent('pointerdown');
+const upEvent = new PointerEvent('pointerup');
+const jogClick = (name) => {
+    const button = id(name);
+    button.dispatchEvent(downEvent);
+    button.dispatchEvent(upEvent);
+}
 const clickon = (name) => {
-    //    $('[data-route="workspace"] .btn').removeClass('active');
     const button = id(name);
     button.click();
 }
+
 let ctrlDown = false;
 let oldIndex = null;;
 let newChild = null;
@@ -843,10 +850,6 @@ const altDown = () => {
     const distance = sel.value;
     oldIndex = sel.selectedIndex;
     newChild = addJogDistance(distance / 10);
-}
-
-const jogClick = (name) => {
-    clickon(name);
 }
 
 const tabletIsActive = () => {
@@ -971,49 +974,48 @@ const setBottomHeight = () => {
     msgElement.style.height = (residue - tPad) + 'px';
 }
 
+const handleDown = (event) => {
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        timeout_id = setTimeout(long_jog, hold_time, target);
+    }
+}
+const handleUp = (event) => {
+    clearTimeout(timeout_id);
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        if (longone) {
+            longone = false;
+            sendRealtimeCmd('\x85');
+        } else {
+            sendMove(target.value);
+        }
+    }
+}
+const handleOut = (event) => {
+    clearTimeout(timeout_id);
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        if (longone) {
+            longone = false;
+            sendRealtimeCmd('\x85');
+        }
+    }
+}
+
 const addListeners = () => {
     addInterfaceListeners();
 
+    // We use up/down/out events so long presses will do continuous jogging
+    // Click events are unnecessary (they are equivalent to up+down with a
+    // short interval) and harmful because they can cause double-triggering
+    // of a jog action due to interaction with click and pointerup.
     const joggers = id('jog-controls');
-    joggers.addEventListener('pointerdown', (event) => {
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            timeout_id = setTimeout(long_jog, hold_time, target);
-        }
-    });
-
-/*
-    joggers.addEventListener('click', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            sendMove(target.value);
-        }
-    });
-*/
-    joggers.addEventListener('pointerup', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            if (longone) {
-                longone = false;
-                sendRealtimeCmd('\x85');
-            } else {
-                sendMove(target.value);
-            }
-        }
-    });
-
-    joggers.addEventListener('pointerout', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            if (longone) {
-                longone = false;
-                sendRealtimeCmd('\x85');
-            }
-        }
-    })
+    for (j of document.getElementsByClassName('jog')) {
+        j.addEventListener('pointerdown', handleDown);
+        j.addEventListener('pointerup', handleUp);
+        j.addEventListener('pointerout', handleOut);
+    }
 
     setJogSelector('mm');
 
