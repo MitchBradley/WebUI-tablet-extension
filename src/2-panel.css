@@ -2,9 +2,12 @@
 /* Panel Extension */
 @media (max-width: 720px) {
   #tablettab {
-    font-size: 16px;
     margin: 0;
     padding: 5px;
+  }
+
+  #tablettab, #gcode, .mdi-entry, .btn-tablet {
+    font-size: 1em;
   }
 
   #nav-panel, #axis-position, #setAxis, #control-pad,
@@ -17,49 +20,39 @@
     display: none;
   }
 
+  #mdifiles.area {
+    padding: 0 0 0.1em 0.1em;
+    height: 8%;
+  }
+
   #mdifiles div:nth-child(5) {
-    width: 70%;
+    width: 80%;
   }
 
   #mdifiles div:nth-child(7) {
-    width: 18%;
+    width: 20%;
   }
 
-  #mdifiles.area {
-    padding-top: 3px !important;
+  #previewpane, #gcode {
+    position: absolute;
+    width: 97%;
   }
 
   #previewpane {
-    position: absolute;
-    top: 152px;
-    width: 97%;
-    height: 358px;
+    top: 33%;
+    height: 66%;
   }
 
   #gcode {
-    position: absolute;
-    width: 96%;
-    height: 90px;
+    height: 23%;
     font-family: "SF Mono", "Segoe UI Mono", "Roboto Mono", Menlo, Courier, monospace;
-    font-size: 14px;
   }
 
   #gcode, #mdifiles {
     background-color: inherit;
   }
 
-  .btn-tablet {
-    height: auto;
-    font-size: 16px;
-  }
-
-  #fsBtn {
-    display: block !important;
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin-top: 10px;
-    margin-right: 10px;
-    width: 35px;
+  .mdi-entry, .btn-tablet {
+    height: 100%;
   }
 }

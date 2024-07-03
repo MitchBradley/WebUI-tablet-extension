@@ -1,14 +1,22 @@
+#tablettab {
+  height: 100%;
+  padding: 5px;
+  font-size: 1.6rem;
+  text-align: center;
+  vertical-align: middle;
+  background-color: #ffffff;
+  font-family: sans-serif;
+}
+
 .cols-tablet {
   width: 100%;
   display:flex;
   flex-wrap: nowrap;
 }
 .col-tablet {
-  margin-right: 0.1rem;
-}
-[class~=col-] {
+  margin-right: 0.15em;
+  margin-bottom: 0.05em;
   width: 100%;
-  padding-left: 0.2rem;
 }
 .disabled {
   cursor: not-allowed;
@@ -16,10 +24,10 @@
 .hidden {
   display: none !important;
 }
-.btn-tablet:hover {
+.btn-tablet:hover, .tablet-menu-item:hover {
   background: #e0e0e0
 }
-.btn-tablet:active {
+.btn-tablet:active, .tablet-menu-item:active {
   background: #d0f0d0
 }
 .btn-tablet:disabled {
@@ -29,39 +37,28 @@
 .btn-tablet {
   text-align: center;
 }
+.btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.4rem;
+}
 .btn-tablet, .mdi-entry {
   width: 100%;
-  /* margin: 0.1rem; */
   background: white;
-  border: 0.05rem solid #5755d9;
-  border-radius: 0.5rem;
   cursor: pointer;
-  display:inline-block;
-  font-size:1.3rem;
-  height: 2.4rem;
-  line-height: 1.2rem;
+  display: inline-block;
+  font-size: 0.85em;
+  height: 1.7em;
   outline: none;
-/*  padding: 0.25rem 0.4rem; */
-}
-#tablettab {
-  height: 100%;
-  padding: 5px;
-  font-size: 1.1rem;
-  text-align: center;
-  vertical-align: middle;
-  background-color: #ffffff;
 }
 .msg {
   width: 100%;
   max-height: 100%;
   overflow-x: auto;
   overflow-y: scroll;
-  margin: 0.1rem;
+  margin: 0.1em;
   padding: 2px;
-  border: 0.05rem solid #5755d9;
-  border-radius: 0.5rem;
   text-align:left;
-  font-size: 1.0rem;
+  font-size: 0.65em;
 }
 #messagepane {
   height: 100%;
@@ -87,9 +84,10 @@
 }
 #tablet-dropdown-menu {
   max-height: 100vh;
+  padding: 0.5em;
+  width: max-content;
 }
 .axis-label {
-  font-size: 1.6rem;
 }
 #axis-position {
   background-color: azure;
@@ -119,16 +117,13 @@
   text-align: left;
 }
 .mposition {
-  padding-top: 0.2rem;
-  font-size: 1.4rem;
+  padding-top: 0.1em;
+  font-size: 0.9em;
   color: #606060;
 }
 .info-button {
-  padding-top: 0.1rem;
-  font-size: 1.4rem;
 }
 .pos-name {
-  font-size: 1.7rem;
 }
 /* display:flex centers jog-distance */
 #jog-distance-container {
@@ -139,46 +134,36 @@
 }
 /* shrink this so it is hard to touch accidentally */
 #jog-distance {
-  padding-top: 0;
-  height: 70%;
+  height: 80%;
   width: 80%;
 }
-.btn-lg {
+.btn-go {
   width:100%;
-  border-width: 1px;
-  border-radius: 0.5rem;
 }
 #nav-panel {
-  padding-top: 0.2rem;
-  font-size: 1.6rem;
 }
 #expand-button {
   position:absolute;
-  top:0;
-  right:0;
+  top:0.25em;
+  right:0.1em;
   z-index:1;
-  width:2rem;
-  height:2rem;
-  margin: 0.1rem;
+  width:2em;
 }
 #previewpane {
   position: relative;
+  margin-left: 0.1em;
 }
 #toolpath {
   height:100%;
   width:100%;
   z-index:0;
-  margin: 0.1rem;
-  border: 0.05rem solid #5755d9;
-  border-radius: 0.5rem;
+  margin: 0.05em;
   user-select: none;
 }
 #filename {
-  position:absolute;
-  top:0;
-  left:0;
-  z-index:1;
-  height:4rem;
-  margin: 5px;
+  position: absolute;
+  top: 0.01em;
+  left: 0.2em;
+  z-index: 1;
   user-select: none;
 }
