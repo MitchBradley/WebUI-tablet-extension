@@ -1,7 +1,17 @@
+.col-tablet {
+  width: 100%;
+}
+#tablettab {
+  font-size: 1.6rem;
+}
+.btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.2rem;
+}
+
 #tablettab {
   height: 100%;
   padding: 5px;
-  font-size: 1.6rem;
   text-align: center;
   vertical-align: middle;
   background-color: #ffffff;
@@ -16,12 +26,11 @@
 .col-tablet {
   margin-right: 0.15em;
   margin-bottom: 0.05em;
-  width: 100%;
 }
 .disabled {
   cursor: not-allowed;
 }
-.hidden {
+.hidden, [hidden] {
   display: none !important;
 }
 .btn-tablet:hover, .tablet-menu-item:hover {
@@ -38,8 +47,6 @@
   text-align: center;
 }
 .btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
-  border: 0.05rem solid #5755d9;
-  border-radius: 0.4rem;
 }
 .btn-tablet, .mdi-entry {
   width: 100%;
