@@ -82,7 +82,6 @@ const parseGrblStatus = (response) => {
                     OVR = grbl.ovr;
                     OVRchanged = true;
                 }
-
                 break;
             case "A":
                 grbl.spindleDirection = 'M5';
@@ -191,6 +190,9 @@ const grblProcessStatus = (response) => {
     // Record persistent values of data
     if (grblstate.wco) {
         WCO = grblstate.wco;
+    }
+    if (grblstate.ovr) {
+        OVR = grblstate.ovr;
     }
     if (grblstate.mpos) {
         MPOS = grblstate.mpos;
