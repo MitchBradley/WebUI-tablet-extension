@@ -330,7 +330,7 @@ const doRightButton = (event) => {
 const green = '#86f686';
 const red = '#f64646';
 const gray = '#f6f6f6';
-const yellow = '#f6f600';
+const yellow = '#ffffa8';
 
 let gCodeLoaded = false;
 const setRunControls = () => {
