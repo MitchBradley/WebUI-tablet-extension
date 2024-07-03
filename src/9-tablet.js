@@ -958,9 +958,8 @@ const height = (element) => {
 const heightId = (eid) => {
     return height(id(eid));
 }
-const bodyHeight = () => { return height(document.body); }
 const controlHeight = () => {
-    return heightId('nav-panel') + heightId('axis-position') + heightId('setAxis') + heightId('control-pad');
+    return heightId('nav-panel') + heightId('axis-position') + heightId('setAxis') + heightId('control-pad') + heightId('mdifiles');
 }
 const setBottomHeight = () => {
     if (!tabletIsActive()) {
@@ -969,9 +968,9 @@ const setBottomHeight = () => {
     const residue = bodyHeight() - navbarHeight() - controlHeight();
 
     const tStyle = getComputedStyle(id('tablettab'))
-    const tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom) + 20;
+    const tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom);
     const msgElement = id('status');
-    msgElement.style.height = (residue - tPad) + 'px';
+    msgElement.style.height = (residue - tPad - 10) + 'px';
 }
 
 const handleDown = (event) => {
