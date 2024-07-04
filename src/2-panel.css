@@ -46,6 +46,7 @@
   #gcode {
     height: 23%;
     font-family: "SF Mono", "Segoe UI Mono", "Roboto Mono", Menlo, Courier, monospace;
+
   }
 
   #gcode, #mdifiles {
@@ -54,5 +55,6 @@
 
   .mdi-entry, .btn-tablet {
     height: 100%;
+
   }
 }
