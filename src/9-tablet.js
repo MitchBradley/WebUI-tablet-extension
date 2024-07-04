@@ -330,7 +330,7 @@ const doRightButton = (event) => {
 const green = '#86f686';
 const red = '#f64646';
 const gray = '#f6f6f6';
-const yellow = '#f6f600';
+const yellow = '#ffffa8';
 
 let gCodeLoaded = false;
 const setRunControls = () => {
@@ -802,11 +802,18 @@ const cycleDistance = (up) => {
     }
 };
 
+const downEvent = new PointerEvent('pointerdown');
+const upEvent = new PointerEvent('pointerup');
+const jogClick = (name) => {
+    const button = id(name);
+    button.dispatchEvent(downEvent);
+    button.dispatchEvent(upEvent);
+}
 const clickon = (name) => {
-    //    $('[data-route="workspace"] .btn').removeClass('active');
     const button = id(name);
     button.click();
 }
+
 let ctrlDown = false;
 let oldIndex = null;;
 let newChild = null;
@@ -843,10 +850,6 @@ const altDown = () => {
     const distance = sel.value;
     oldIndex = sel.selectedIndex;
     newChild = addJogDistance(distance / 10);
-}
-
-const jogClick = (name) => {
-    clickon(name);
 }
 
 const tabletIsActive = () => {
@@ -955,9 +958,8 @@ const height = (element) => {
 const heightId = (eid) => {
     return height(id(eid));
 }
-const bodyHeight = () => { return height(document.body); }
 const controlHeight = () => {
-    return heightId('nav-panel') + heightId('axis-position') + heightId('setAxis') + heightId('control-pad');
+    return heightId('nav-panel') + heightId('axis-position') + heightId('setAxis') + heightId('control-pad') + heightId('mdifiles');
 }
 const setBottomHeight = () => {
     if (!tabletIsActive()) {
@@ -966,54 +968,53 @@ const setBottomHeight = () => {
     const residue = bodyHeight() - navbarHeight() - controlHeight();
 
     const tStyle = getComputedStyle(id('tablettab'))
-    const tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom) + 20;
+    const tPad = parseFloat(tStyle.paddingTop) + parseFloat(tStyle.paddingBottom);
     const msgElement = id('status');
-    msgElement.style.height = (residue - tPad) + 'px';
+    msgElement.style.height = (residue - tPad - 10) + 'px';
+}
+
+const handleDown = (event) => {
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        timeout_id = setTimeout(long_jog, hold_time, target);
+    }
+}
+const handleUp = (event) => {
+    clearTimeout(timeout_id);
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        if (longone) {
+            longone = false;
+            sendRealtimeCmd('\x85');
+        } else {
+            sendMove(target.value);
+        }
+    }
+}
+const handleOut = (event) => {
+    clearTimeout(timeout_id);
+    const target = event.target;
+    if (target.classList.contains('jog')) {
+        if (longone) {
+            longone = false;
+            sendRealtimeCmd('\x85');
+        }
+    }
 }
 
 const addListeners = () => {
     addInterfaceListeners();
 
+    // We use up/down/out events so long presses will do continuous jogging
+    // Click events are unnecessary (they are equivalent to up+down with a
+    // short interval) and harmful because they can cause double-triggering
+    // of a jog action due to interaction with click and pointerup.
     const joggers = id('jog-controls');
-    joggers.addEventListener('pointerdown', (event) => {
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            timeout_id = setTimeout(long_jog, hold_time, target);
-        }
-    });
-
-/*
-    joggers.addEventListener('click', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            sendMove(target.value);
-        }
-    });
-*/
-    joggers.addEventListener('pointerup', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            if (longone) {
-                longone = false;
-                sendRealtimeCmd('\x85');
-            } else {
-                sendMove(target.value);
-            }
-        }
-    });
-
-    joggers.addEventListener('pointerout', (event) => {
-        clearTimeout(timeout_id);
-        const target = event.target;
-        if (target.classList.contains('jog')) {
-            if (longone) {
-                longone = false;
-                sendRealtimeCmd('\x85');
-            }
-        }
-    })
+    for (j of document.getElementsByClassName('jog')) {
+        j.addEventListener('pointerdown', handleDown);
+        j.addEventListener('pointerup', handleUp);
+        j.addEventListener('pointerout', handleOut);
+    }
 
     setJogSelector('mm');
 

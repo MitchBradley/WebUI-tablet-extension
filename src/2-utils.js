@@ -1,4 +1,3 @@
-// From utils.js
 const id = (name) =>  document.getElementById(name);
 const getValue = (name, val) => id(name).value;
 const setTextContent = (name, val) => id(name).textContent = val;
@@ -13,5 +12,4 @@ const selectDisabled = (selector, value) =>
         (element) => {
             element.disabled = value;
         }
-    )
-// End utils.js
+    );
