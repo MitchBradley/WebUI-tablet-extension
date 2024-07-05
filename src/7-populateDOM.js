@@ -265,7 +265,7 @@ const attachApp = (container) => {
                             override('--', '\x9b', 'Decrease spindle speed by 10%'),
                             override('-', '\x9d', 'Decrease spindle speed by 1%'),
                             col(2, button('spindle-ovr', 'btn-tablet info-button', '100%', 'Cancel spindle override', btnSpindleOvrCancel, '')),
-                            override('++', '\x9c', 'Increase spindle speed by 1%'),
+                            override('+', '\x9c', 'Increase spindle speed by 1%'),
                             override('++', '\x9a', 'Increase spindle speed by 10%')
                         ])
                     ]),
