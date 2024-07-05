@@ -424,7 +424,9 @@ const tabletGrblState = (grbl) => {
         selectDisabled('.axis-position .form-control', cannotClick);
         selectDisabled('.axis-position .btn', cannotClick);
         selectDisabled('.axis-position .position', cannotClick);
-        if (!cannotClick) {
+        if (cannotClick) {
+            expandVisualizer();
+        } else {
             contractVisualizer();
         }
     }
@@ -731,7 +733,6 @@ const scrollToLine = (lineNumber) => {
 
 const runGCode = () => {
     gCodeFilename && sendCommand('$sd/run=' + gCodeFilename);
-    expandVisualizer();
 };
 
 const tabletSelectGCodeFile = (filename) => {

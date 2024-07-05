@@ -108,6 +108,9 @@ const parseGrblStatus = (response) => {
                 const sdinfo = value.split(',');
                 grbl.sdPercent = parseFloat(sdinfo[0]);
                 grbl.sdName = sdinfo[1];
+                if (grbl.stateName == "Idle") {
+                    grbl.stateName = "Run";
+                }
                 break;
             case "Pn":
                 // pin status
