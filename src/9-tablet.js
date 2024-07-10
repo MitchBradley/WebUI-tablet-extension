@@ -1,4 +1,4 @@
-const n_axes = 4;
+const tablet_n_axes = 4;
 
 const tabletClick = () => {
     if (window.navigator && window.navigator.vibrate) {
@@ -1017,13 +1017,11 @@ const addListeners = () => {
         j.addEventListener('pointerout', handleOut);
     }
 
-    setJogSelector('mm');
-
     id('mditext0').addEventListener('keyup', mdiEnterKey);
     id('mditext1').addEventListener('keyup', mdiEnterKey);
 
     numpad.init();
-    for (let i = 0; i < n_axes; i++) {
+    for (let i = 0; i < tablet_n_axes; i++) {
         const axis = axisNames[i]
         numpad.attach({target: `wpos-${axis}`, axis: axis})
     }

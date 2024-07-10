@@ -159,10 +159,13 @@ const override = (label, value, help) => {
     return col(1, button('', 'btn-tablet feed-ovr', label, help, btnOverride, value))
 }
 
-const mi = (text, theclick) => {
+const mi = (text, theclick, show = true) => {
     const anchor = element('div', '', 'tablet-menu-item', text)
-    anchor.onclick = theclick
-    // anchor.role = 'menuitem'
+    if (show) {
+        anchor.onclick = theclick;
+    } else {
+        anchor.hidden = true;
+    }
     return anchor;
 }
 
@@ -180,6 +183,7 @@ const attachApp = (container) => {
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('div', 'tablet-dropdown-menu', 'menu', [
+                            mi("Fullscreen", toggleFullscreen, typeof toggleFullscreen === 'function'),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
@@ -189,8 +193,8 @@ const attachApp = (container) => {
                     ])
                 ])
             ),
-            axis_labels(n_axes),
-            axis_zeroing(n_axes),
+            axis_labels(tablet_n_axes),
+            axis_zeroing(tablet_n_axes),
             div('control-pad', 'area control-pad', [
                 div('jog-controls', 'middle-block jog-controls', [
                     columns('', 'jog-row', [

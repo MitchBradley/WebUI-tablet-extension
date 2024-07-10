@@ -1,13 +1,8 @@
-let interval_status = -1;
 let WCO = undefined;
 let OVR = { feed: undefined, rapid: undefined, spindle: undefined };
 let OVRchanged = false;
 let MPOS = [0, 0, 0, 0];
 let WPOS = [0, 0, 0, 0];
-let grblaxis = 3;
-let grblzerocmd = 'X0 Y0 Z0';
-let feedrate = [0, 0, 0, 0, 0, 0];
-let last_axis_letter = 'Z';
 
 const axisNames = ['x', 'y', 'z', 'a', 'b', 'c'];
 
@@ -124,41 +119,6 @@ const parseGrblStatus = (response) => {
     return grbl;
 }
 
-const clickableFromStateName = (state, hasSD) => {
-    const clickable = {
-        resume: false,
-        pause: false,
-        reset: false
-    }
-    switch(state) {
-        case 'Run':
-            clickable.pause = true;
-            clickable.reset = true;
-            break;
-        case 'Door1':
-            clickable.reset = true;
-            break;
-        case 'Door0':
-        case 'Hold':
-            clickable.resume = true;
-            clickable.reset = true;
-            break;
-        case 'Alarm':
-            if (hasSD) {
-                //guess print is stopped because of alarm so no need to pause
-                clickable.resume = true;
-            }
-            break;
-        case 'Idle':
-        case 'Jog':
-        case 'Home':
-        case 'Check':
-        case 'Sleep':
-            break;
-    }
-    return clickable;
-}
-
 const pauseGCode = () => {
     sendRealtimeCmd('\x21'); // '!'
 }
@@ -178,7 +138,8 @@ const stopGCode = () => {
     grblReset();
 }
 
-let grblstate
+let grblstate;
+
 const showGrblState = () => {
     if (!grblstate) {
         return;
