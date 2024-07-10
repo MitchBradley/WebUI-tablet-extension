@@ -1,0 +1,10 @@
+.col-tablet {
+  width: 100%;
+}
+#tablettab {
+  font-size: 1.6rem;
+}
+.btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
+  border: 0.05rem solid #5755d9;
+  border-radius: 0.2rem;
+}

@@ -20,7 +20,7 @@ if (-Not (Test-Path -Path "build")) {
 }
 
 # Concatenate CS files
-Get-Content -Path "src/*.css" -Raw | Out-File -FilePath "build/all.css" -Encoding ascii
+Get-Content -Path "src/webui3/*.css","src/tablet/*.css"  -Raw | Out-File -FilePath "build/all.css" -Encoding ascii
 
 # Minify CSS
 $cssData = Get-Content -Raw -Path "build/all.css"
@@ -34,7 +34,7 @@ try {
 }
 
 # Concatenate JS files
-Get-Content -Path "src/*.js" -Raw | Out-File -FilePath "build/all.js" -Encoding ascii
+Get-Content -Path "src/webui3/*.js","src/tablet/*.js" -Raw | Out-File -FilePath "build/all.js" -Encoding ascii
 
 # Minify JS
 $jsData = Get-Content -Raw -Path "build/all.js"
