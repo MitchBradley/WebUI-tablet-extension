@@ -77,6 +77,12 @@ const axisResult = (content) => {
     }
 }
 
+// Defining toggleFullscreen as something other than a function
+// prevents the inclusion of a Fullscreen menu item.  With WebUI-3,
+// it is tricky to implement fullscreen from inside the tablet panel
+// or page, so we use the fullscreen control in the containing context.
+const toggleFullscreen = false;
+
 const processMessage = (eventMsg) => {
     if (eventMsg.data.type  && (!eventMsg.data.id||eventMsg.data.id=='tablet'||eventMsg.data.id=='command'||eventMsg.data.id=='axis'||eventMsg.data.id=='connection')) {
         switch (eventMsg.data.type) {

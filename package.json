@@ -1,0 +1,26 @@
+{
+  "name": "webui-tablet-extension",
+  "version": "1.0.0",
+  "description": "UI variant for ESP3D-WebUI optimized for touchscreen tablets.",
+  "main": "src/tablet/tablet.js",
+  "directories": {
+    "src": "src"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MitchBradley/WebUI-tablet-extension.git"
+  },
+  "keywords": [
+    "CNC",
+    "WebUI"
+  ],
+  "author": "Mitch Bradley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MitchBradley/WebUI-tablet-extension/issues"
+  },
+  "homepage": "https://github.com/MitchBradley/WebUI-tablet-extension#readme"
+}

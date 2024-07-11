@@ -1,5 +1,5 @@
 # WebUI-tablet-extension
-Plugin for ESP3D WebUI implementing a user interface optimized for tablets
+Plugin for ESP3D WebUI v3 implementing a user interface optimized for tablets
 
 ![Screenshot](doc/screenshot.png)
 
@@ -20,6 +20,11 @@ frequently-used functions.
 * A GCode visualizer and file content display helps with job setup, letting you confirm that the job is the one you want, with the tool in the right position.
 
 It is intended for use with CNC controllers that are compatible with GRBL.  Most of the testing is done with [FluidNC](https://github.com/bdring/FluidNC). It lacks many capabilities that are commonly needed for 3D printing.
+
+In addition to its use as a plugin for ESP3D-WebUI version 3, the code in this
+repository can also be used to implement the tablet UI functionality within
+ESP3D-WebUI version 2.  Version 2 cannot load plugin extensions, so the code
+must be compiled into the v2 index.html.gz file.
 
 ## Installation
 
@@ -113,3 +118,8 @@ also generated the explanation below.)
 * Output Message: The script prints the location of the final compressed file.
 
 The output file "build/tablet.html.gz" can be uploaded to the Flash filesystem on an ESP3D-WEBUI system and then used via ESP3D-WEBUI's Extra Content mechanism.
+
+### Use with ESP3D-WebUI version 2
+
+See the instructions at https://github.com/MitchBradley/ESP3D-WEBUI/blob/revamp/README.md .
+

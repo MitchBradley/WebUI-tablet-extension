@@ -1,14 +1,3 @@
-.col-tablet {
-  width: 100%;
-}
-#tablettab {
-  font-size: 1.6rem;
-}
-.btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
-  border: 0.05rem solid #5755d9;
-  border-radius: 0.2rem;
-}
-
 #tablettab {
   height: 100%;
   padding: 5px;
@@ -16,6 +5,7 @@
   vertical-align: middle;
   background-color: #ffffff;
   font-family: sans-serif;
+  user-select: none;
 }
 
 .cols-tablet {
@@ -46,8 +36,6 @@
 .btn-tablet {
   text-align: center;
 }
-.btn-tablet, .mdi-entry, .msg, .btn-go, #toolpath {
-}
 .btn-tablet, .mdi-entry {
   width: 100%;
   background: white;
@@ -71,6 +59,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  user-select: text;
 }
 #gcode-states {
   background-color: azure;
@@ -122,6 +111,7 @@
 
 .mdi-entry {
   text-align: left;
+  user-select: auto;
 }
 .mposition {
   padding-top: 0.1em;

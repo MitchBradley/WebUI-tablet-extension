@@ -1,14 +1,14 @@
 #! /bin/bash
 if test $# == 0; then version=${USER}" "`date --rfc-3339=seconds`; else version=$1; fi
 mkdir -p build
-cat src/*.css >build/all.css
+cat src/tablet/*.css src/webui3/*.css >build/all.css
 curl -s -X POST --data-urlencode input@build/all.css https://www.toptal.com/developers/cssminifier/api/raw >build/tablet-min.css
 if head -1 build/tablet-min.css | grep -q '^{"errors' ; then 
     echo "Error while minifying all.css"
     sed -s "s/\\\\n/\n/g" <build/tablet-min.css
     exit
 fi
-cat src/*.js >build/all.js
+cat src/tablet/*.js src/webui3/*.js >build/all.js
 curl -s -X POST --data-urlencode input@build/all.js https://www.toptal.com/developers/javascript-minifier/api/raw >build/tablet-min.js
 if head -1 build/tablet-min.js | grep -q '^{"errors' ; then 
     echo "Error while minifying all.js"
