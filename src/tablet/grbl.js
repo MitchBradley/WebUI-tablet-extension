@@ -128,10 +128,10 @@ const resumeGCode = () => {
 }
 
 const grblReset = () => {
-    if (probe_progress_status != 0) {
-        probe_failed_notification();
-    }
     sendRealtimeCmd('\x18');
+    if (is_probing) {
+        probe_failed_notification('Probe Canceled');
+    }
 }
 
 const stopGCode = () => {
@@ -177,13 +177,11 @@ const grblGetProbeResult = (response) => {
     const tab1 = response.split(":");
     if (tab1.length > 2) {
         const status = tab1[2].replace("]", "");
+        if (is_probing) {
+            finalize_probing();
+        }
         if (parseInt(status.trim()) == 1) {
-            if (probe_progress_status != 0) {
-                sendProbeCommand();
-                finalize_probing();
-            }
-        } else {
-            probe_failed_notification();
+            probe_failed_notification(probe_fail_reason == '' ? 'Probe Failed' : probe_fail_reason);
         }
     }
 }
@@ -272,8 +270,8 @@ const grblHandleMessage = (msg) => {
         grblHandleError(msg);
     }
     if (msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {
-        if (probe_progress_status != 0) {
-            probe_failed_notification();
+        if (is_probing) {
+            probe_failed_notification(msg);
         }
         return;
     }

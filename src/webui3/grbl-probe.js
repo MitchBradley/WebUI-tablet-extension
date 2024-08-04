@@ -1,9 +1,5 @@
-let probe_progress_status = 0;
+let is_probing = false;
+let probe_fail_reason = '';
 
 const finalize_probing = () => {};
-const probe_failed_notification = () => {};
-
-const sendProbeCommand = () => {
-      // const cmd = "$J=G90 G21 F1000 Z" + (parseFloat(getValue('probetouchplatethickness')) +                                                       parseFloat(getValue('proberetract')));
-      // sendCommand(cmd);
-};
+const probe_failed_notification = (msg) => {};
