@@ -1,5 +1,5 @@
 const uploadFile = () => {
-    id('uploadBtn').click()
+    id(uploadButtonName).click()
 }
 
 const injectCSS = (css) => {

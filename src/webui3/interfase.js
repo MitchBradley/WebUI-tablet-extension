@@ -137,7 +137,8 @@ const refreshFiles = (event) => {
     files_refreshFiles(files_currentPath)
 }
 
-//  const uploadFile = () => { }
+const uploadButtonName = 'uploadBtn';
+
 const internalUploadFile = () => {
     const files = id("uploadBtn").files
     if (files.length>0){
