@@ -776,7 +776,7 @@ const selectFile = (event) => {
     }
     const file = files_file_list[index];
     const filename = file.name;
-    if (file.size == -1) { // Directory
+    if (file.isdir) { // Directory
         gCodeFilename = '';
         files_enter_dir(filename);
     } else {
