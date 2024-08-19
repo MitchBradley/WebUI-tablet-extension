@@ -180,7 +180,7 @@ const grblGetProbeResult = (response) => {
         if (is_probing) {
             finalize_probing();
         }
-        if (parseInt(status.trim()) == 1) {
+        if (parseInt(status.trim()) != 1) {
             probe_failed_notification(probe_fail_reason == '' ? 'Probe Failed' : probe_fail_reason);
         }
     }
