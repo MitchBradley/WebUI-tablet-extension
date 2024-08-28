@@ -8,6 +8,19 @@ const axisNames = ['x', 'y', 'z', 'a', 'b', 'c'];
 
 const modal = { modes: "", plane: 'G17', units: 'G21', wcs: 'G54', distance: 'G90' };
 
+// If a browser reload occurs during FluidNC motion, the web page refresh can
+// cause crashes because of ESP32 FLASH vs ISR conflicts.  We cannot block that
+// entirely, but we can make the user confirm via a dialog box.  Unfortunately,
+// due to security considerations, it is not possible to control the text in
+// that dialog box.
+let running = false;
+const blockReload = (event) => {
+   if (running) {
+       event.preventDefault();
+   }
+}
+window.onbeforeunload = blockReload;
+
 const parseGrblStatus = (response) => {
     const grbl = {
         stateName: '',
@@ -32,20 +45,26 @@ const parseGrblStatus = (response) => {
         const value = tv[1];
         switch(tag) {
             case "Door":
+                running = false;
                 grbl.stateName = "Door"+value;
                 grbl.message = field;
                 break;
             case "Hold":
+                running = true;
                 grbl.stateName = tag;
                 grbl.message = field;
                 break;
             case "Run":
             case "Jog":
-            case "Idle":
             case "Home":
+                running = true;
+                grbl.stateName = tag;
+                break;
+            case "Idle":
             case "Alarm":
             case "Check":
             case "Sleep":
+                running = false;
                 grbl.stateName = tag;
                 break;
 
