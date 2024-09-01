@@ -534,12 +534,16 @@ const tabletGrblState = (grbl) => {
 
     if (WPOS) {
         WPOS.forEach( (pos, index) => {
-            setTextContent('wpos-' + axisNames[index], Number(pos * factor).toFixed(index > 2 ? 2 : digits));
+            if (index < tablet_n_axes) {
+                setTextContent('wpos-' + axisNames[index], Number(pos * factor).toFixed(index > 2 ? 2 : digits));
+            }
         });
     }
 
     MPOS.forEach( (pos, index) => {
-        setTextContent('mpos-' + axisNames[index], Number(pos * factor).toFixed(index > 2 ? 2 : digits));
+        if (index < tablet_n_axes) {
+            setTextContent('mpos-' + axisNames[index], Number(pos * factor).toFixed(index > 2 ? 2 : digits));
+        }
     });
 }
 
