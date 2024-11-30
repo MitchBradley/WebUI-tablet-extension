@@ -195,12 +195,9 @@ const grblProcessStatus = (response) => {
 const grblGetProbeResult = (response) => {
     const tab1 = response.split(":");
     if (tab1.length > 2) {
-        const status = tab1[2].replace("]", "");
+        const status = parseInt(tab1[2].replace("]", "").trim());
         if (is_probing) {
-            finalize_probing();
-        }
-        if (parseInt(status.trim()) != 1) {
-            probe_failed_notification(probe_fail_reason == '' ? 'Probe Failed' : probe_fail_reason);
+            finalize_probing(status);
         }
     }
 }
