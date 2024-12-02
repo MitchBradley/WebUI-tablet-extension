@@ -98,9 +98,9 @@ class Toolpath {
                 z: this.position.z
             };
             const v2 = {
-                x: this.translateX(params.X),
-                y: this.translateY(params.Y),
-                z: this.translateZ(params.Z)
+                x: this.translateX(params.X, this.isRelativeDistance()),
+                y: this.translateY(params.Y, this.isRelativeDistance()),
+                z: this.translateZ(params.Z, this.isRelativeDistance())
             };
             const targetPosition = { x: v2.x, y: v2.y, z: v2.z };
 
@@ -134,9 +134,9 @@ class Toolpath {
                 z: this.position.z
             };
             const v2 = {
-                x: this.translateX(params.X),
-                y: this.translateY(params.Y),
-                z: this.translateZ(params.Z)
+                x: this.translateX(params.X, this.isRelativeDistance()),
+                y: this.translateY(params.Y, this.isRelativeDistance()),
+                z: this.translateZ(params.Z, this.isRelativeDistance())
             };
             const targetPosition = { x: v2.x, y: v2.y, z: v2.z };
 
@@ -174,9 +174,9 @@ class Toolpath {
                 z: this.position.z
             };
             const v2 = {
-                x: this.translateX(params.X),
-                y: this.translateY(params.Y),
-                z: this.translateZ(params.Z)
+                x: this.translateX(params.X, this.isRelativeDistance()),
+                y: this.translateY(params.Y, this.isRelativeDistance()),
+                z: this.translateZ(params.Z, this.isRelativeDistance())
             };
             const v0 = { // fixed point
                 x: this.translateI(params.I),
@@ -236,9 +236,9 @@ class Toolpath {
 
             const v1 = this.position;
             const v2 = {
-                x: this.translateX(params.X),
-                y: this.translateY(params.Y),
-                z: this.translateZ(params.Z)
+                x: this.translateX(params.X, this.isRelativeDistance()),
+                y: this.translateY(params.Y, this.isRelativeDistance()),
+                z: this.translateZ(params.Z, this.isRelativeDistance())
             };
             const v0 = { // fixed point
                 x: this.translateI(params.I),
