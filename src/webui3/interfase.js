@@ -8,8 +8,13 @@ const navbarHeight = () => {
     return 0;
 }
 
+// window.parent can depend on the context from which we call sendMessage
+// For example, window has a different value inside the dropdown menu.
+// We want to use the value that is in effect on initial load, so we
+// save that value in messageTarget and use the saved value in sendMessage
+const messageTarget = window.parent;
 const sendMessage = (msg) => {
-    window.parent.postMessage(msg, '*')
+    messageTarget.postMessage(msg, '*');
 }
 
 const askAxis = (name) => {
@@ -26,7 +31,12 @@ const downloadPreferences = () => {
 
 let gCodeFileExtensions = 'nc;gcode';
 const processPreferences = (preferences) => {
-    gCodeFileExtensions = JSON.parse(preferences).settings.filesfilter;
+    settings = JSON.parse(preferences).settings;
+    gCodeFileExtensions = settings.filesfilter;
+    settings.macros.forEach((macro) => {
+        //  const displayIcon = iconsList[element.icon] ? iconsList[element.icon] : "";
+        tabletAddMacro(macro.name, 'macro-item', null, macro.type, macro.action);
+    });
 }
 
 const sendCommand = (cmd) => {
@@ -60,6 +70,55 @@ const files_url = () => {
 const setupFluidNC = () => {
     sendCommand('$Report/Interval=300')
     // Get bounding box
+}
+
+const macro_command = (type, action) => {
+    switch (type) {
+    case "FS":
+        //[ESP700] //ESP700 should send status to telnet / websocket
+        //Todo: handle response from ESP700
+        sendCommand("$LocalFs/Run=" + action)
+        break
+    case "SD":
+        //get command accoring target FW
+        sendCommand("$SD/Run="+action);
+        break
+//    case "URI":
+//        //open new page or silent command
+//        const uri = action.trim().replace("[SILENT]", "")
+//        if (action.trim().startsWith("[SILENT]")) {
+//            const uri = action.trim().replace("[SILENT]", "")
+//            var myInit = {
+//                method: "GET",
+//                mode: "cors",
+//                cache: "default",
+//            }
+//            fetch(uri, myInit)
+//                .then(function (response) {
+//                    if (response.ok) {
+//                        console.log("Request succeeded")
+//                    } else {
+//                        console.log("Request failed")
+//                    }
+//                })
+//                .catch(function (error) {
+//                    console.log("Request failed: " + error.message)
+//                })
+//        } else {
+//            window.open(action)
+//        }
+//        break
+    case "CMD":
+        //split by ; and show in terminal
+        const commandsList = action.trim().split(";")
+        commandsList.forEach((command) => {
+            sendCommand(command)
+        })
+        break
+    default:
+        console.log("type:", type, " action:", action)
+        break
+    }
 }
 
 const files_refreshFiles = (dir) => {

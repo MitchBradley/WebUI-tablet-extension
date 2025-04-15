@@ -1062,3 +1062,42 @@ const addListeners = () => {
     window.addEventListener('keyup', handleKeyUp);
     window.onresize = setBottomHeight;
 };
+
+macros = [];
+const tabletClearMacros = () => {
+    parent = id('tablet-dropdown-menu');
+    macros.forEach((item) => {
+        parent.removeChild(item);
+    });
+    macros.length = 0;
+}
+
+const runMacro = (event) => {
+    data = event.srcElement.dataset;
+    macro_command(data.type, data.action);
+    hideMenu();
+}
+
+const tabletAddMacro = (name, classlist, icon, type, action) => {
+    if (name == '') {
+        return;
+    }
+    parent = id('tablet-dropdown-menu');
+    item = document.createElement('div');
+
+    let content = '';
+    if (icon) {
+        content += '<span>' + icon + '</span>';
+    }
+    content += name;
+    item.innerHTML = content;
+    item.setAttribute('class', 'tablet-menu-item');
+    item.setAttribute('data-action', action);
+    item.setAttribute('data-type', type);
+    if (classlist) {
+        classlist.split(' ').forEach( (cls) => { if (cls != 'btn') item.classList.add(cls); } );
+    }
+    item.addEventListener('click', runMacro);
+    parent.appendChild(item);
+    macros.push(item);
+}
