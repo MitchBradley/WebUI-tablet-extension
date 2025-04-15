@@ -370,7 +370,7 @@ const updateModal = () => {
         setJogSelector(modal.units);
     }
     setHTML('gcode-states', modal.modes || "GCode State");
-    setText('wpos-label', modal.wcs);
+    commitWcs(modal.wcs);
     const distanceText = modal.distance == 'G90'
         ? modal.distance
         : "<div style='color:red'>" + modal.distance + "</div>";
@@ -420,10 +420,7 @@ const tabletGrblState = (grbl) => {
         selectDisabled('.jog-controls .form-control', cannotClick);
         selectDisabled('.jog-controls .btn', cannotClick);
         selectDisabled('.dropdown-toggle', cannotClick);
-        selectDisabled('.axis-position .position', cannotClick);
-        selectDisabled('.axis-position .form-control', cannotClick);
-        selectDisabled('.axis-position .btn', cannotClick);
-        selectDisabled('.axis-position .position', cannotClick);
+        selectDisabled('.axis-position .btn-tablet', cannotClick);
         if (cannotClick) {
             expandVisualizer();
         } else {
@@ -758,6 +755,31 @@ const tabletLoadGCodeFile = (path, size) => {
         setHTML('filename', gCodeFilename);
         files_downloadFile(gCodeFilename)
     }
+};
+
+let last_selected_index = 0;
+
+const findOptionIndexByValue = (value) => {
+    const s = id('wcs');
+    for (let i = 0; i < s.options.length; i++) {
+        if (s.options[i].value === value) {
+            return i;
+        }
+    }
+    return null;
+}
+
+const commitWcs = (wcs) => {
+    last_selected_index = findOptionIndexByValue(wcs);
+    id('wcs').selectedIndex = last_selected_index;
+};
+
+const selectWcs = (event) => {
+    tabletClick();
+    sendCommand(id('wcs').value);
+    sendCommand('$G');             // Ask for report of new state
+    // Don't change the control until the report comes back
+    id('wcs').selectedIndex = last_selected_index;
 };
 
 const selectFile = (event) => {

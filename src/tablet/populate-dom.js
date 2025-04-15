@@ -111,13 +111,27 @@ const makeDRO = (axis) => {
                ])
     )
 }
+const optval = (name) => {
+    const el = element('option', '', '', name)
+    el.value = name
+    return el
+}
 const axis_labels = (naxes) => {
     const elements = []
     for (let i = 0; i < naxes; i++) {
         elements.push(makeDRO(axisNames[i]))
     }
     return columns('axis-position', 'area axis-position', [
-        div('wpos-label', 'col-tablet col-1 pos-name', 'WPos'),
+        div('wcs-container', 'col-tablet col-1 wcs-name', [
+            select('wcs', 'btn-tablet wcs-selector', selectWcs, [
+                optval("G54"),
+                optval("G55"),
+                optval("G56"),
+                optval("G57"),
+                optval("G58"),
+                optval("G59")
+            ]),
+        ]),
         col(11, columns('', '', elements))
     ])
 }
