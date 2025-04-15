@@ -16,5 +16,7 @@ if head -1 build/tablet-min.js | grep -q '^{"errors' ; then
     echo
     exit
 fi
-cat <(echo "<style>") build/tablet-min.css <(echo "</style>") <(echo "<script>") build/tablet-min.js <(echo "</script>") <(echo "<div id='version' class='d-none'>${version}</div>") | gzip -c >build/tablet.html.gz
+cat <(echo "<style>") build/tablet-min.css <(echo "</style>") <(echo "<script>") build/tablet-min.js <(echo "</script>") <(echo "<div id='version' class='d-none'>${version}</div>") > build/tablet.html
+gzip -c < build/tablet.html >build/tablet.html.gz
 echo "Output is in build/tablet.html.gz"
+# cp build/tablet.html /GitHub/WebUI-mm/server/CNC/FluidNC/Flash
