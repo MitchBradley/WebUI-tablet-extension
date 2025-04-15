@@ -85,6 +85,12 @@ class Toolpath {
         tool: 0
     };
 
+    set_wcs = (wcsval) => {
+        if (this.modal.wcs !== wcsval) {
+            this.setModal({ wcs: wcsval });
+        }
+    }
+
     handlers = {
         // G0: Rapid Linear Move
         'G0': (params) => {
@@ -371,34 +377,22 @@ class Toolpath {
         },
         // G54..59: Coordinate System Select
         'G54': () => {
-            if (this.modal.wcs !== 'G54') {
-                this.setModal({ wcs: 'G54' });
-            }
+            set_wcs('G54');
         },
         'G55': () => {
-            if (this.modal.wcs !== 'G55') {
-                this.setModal({ wcs: 'G55' });
-            }
+            set_wcs('G55');
         },
         'G56': () => {
-            if (this.modal.wcs !== 'G56') {
-                this.setModal({ wcs: 'G56' });
-            }
+            set_wcs('G56');
         },
         'G57': () => {
-            if (this.modal.wcs !== 'G57') {
-                this.setModal({ wcs: 'G57' });
-            }
+            set_wcs('G57');
         },
         'G58': () => {
-            if (this.modal.wcs !== 'G58') {
-                this.setModal({ wcs: 'G58' });
-            }
+            set_wcs('G58');
         },
         'G59': () => {
-            if (this.modal.wcs !== 'G59') {
-                this.setModal({ wcs: 'G59' });
-            }
+            set_wcs('G59');
         },
         // G80: Cancel Canned Cycle
         'G80': () => {
