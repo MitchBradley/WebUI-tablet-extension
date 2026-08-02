@@ -500,7 +500,7 @@ const tabletGrblState = (grbl) => {
             : Number(grbl.feedrate / 25.4).toFixed(2);
 
         const rateText = rateNumber +
-            (modal.units == 'G21' ? ' mm/min' : ' in/min');
+            (modal.units == 'G21' ? ' mmpm' : ' ipm');
 
         setText('feed', rateNumber);
         setText('spindle-speed', spindleSpeed);
@@ -510,7 +510,7 @@ const tabletGrblState = (grbl) => {
             setText('spindle-ovr', OVR.spindle + '%');
         }
 
-        stateText = rateText + " " + spindleSpeed + " " + spindleDirection;
+        stateText = rateText + " " + spindleSpeed /* + " " + spindleDirection */;
     } else {
         // const stateText = errorText == 'Error' ? "Error: " + errorMessage : stateName;
         stateText = stateName;
