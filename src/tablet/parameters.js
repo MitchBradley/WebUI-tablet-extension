@@ -31,13 +31,13 @@ let named_params = new Map();
 
 let user_params = new Map();
 
-const set_numberered_param = (id, value) => {
+const set_numbered_param = (id, value) => {
     if (id >= 1 && id <= 5000) {
         return user_params.set(id, value);
     }
     return false;
 }
-const get_numberered_param = (id) => {
+const get_numbered_param = (id) => {
     if (id >= 1 && id <= 5000) {
         let value = user_params.get(id)
         return (value == undefined) ? NaN : value;
@@ -65,7 +65,7 @@ const get_param = (param_ref) => {
         }
         return named_params.get(param_ref.name);
     }
-    return get_numbered_param(param_ref.id, result);
+    return get_numbered_param(param_ref.id);
 }
 
 const read_float = (s) => {
