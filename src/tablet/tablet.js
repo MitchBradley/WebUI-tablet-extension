@@ -390,6 +390,49 @@ let grblReportingUnits = 0;  // Should be set from $10
 let oldCannotClick = null;
 let gCodeDisplayable = false;
 
+// Single-block (step) mode.  singleBlockEnabled tracks the on/off button
+// state, set optimistically when the button is clicked; setSingleBlock()
+// (grbl.js) does the actual controller communication and works even while a
+// job is actively running, not just while Idle.
+// stepPending tracks whether the current Hold was caused by single-block mode
+// pausing before the next line, as opposed to a manual feed hold, so the
+// left button can say "Step" instead of "Resume".
+let singleBlockEnabled = false;
+let stepPending = false;
+
+const toggleSingleBlock = () => {
+    singleBlockEnabled = !singleBlockEnabled;
+    setSingleBlock(singleBlockEnabled);
+    const btn = id('btn-singleblock');
+    if (btn) {
+        btn.style.backgroundColor = singleBlockEnabled ? green : gray;
+    }
+    if (!singleBlockEnabled) {
+        stepPending = false;
+        const gCodeLines = id('gcode');
+        if (gCodeLines) {
+            gCodeLines.classList.remove('line-waiting', 'line-executing');
+            gCodeLines.setSelectionRange(0, 0);
+        }
+    }
+};
+
+// Called from grbl.js's detectStep() when a single-block pause is reported,
+// with the line number it paused before.
+const showStepLine = (lineNumber) => {
+    stepPending = true;
+    setText('line', lineNumber);
+    if (gCodeDisplayable) {
+        scrollToLine(lineNumber);
+    }
+    const gCodeLines = id('gcode');
+    if (gCodeLines) {
+        gCodeLines.classList.remove('line-executing');
+        gCodeLines.classList.add('line-waiting');
+    }
+    setLeftButton(true, green, 'Step', resumeGCode);
+};
+
 const tabletGrblState = (grbl) => {
     updateModal();
     const stateName = grbl.stateName;
@@ -429,6 +472,11 @@ const tabletGrblState = (grbl) => {
     }
     oldCannotClick = cannotClick;
 
+    // stepPending only means anything during a Hold.
+    if (stateName != 'Hold' && stateName != 'Door0') {
+        stepPending = false;
+    }
+
     updateModal();
 
     switch (stateName) {
@@ -449,13 +497,13 @@ const tabletGrblState = (grbl) => {
             break;
         case 'Door0':
         case 'Hold':
-            setLeftButton(true, green, 'Resume', resumeGCode);
+            setLeftButton(true, green, stepPending ? 'Step' : 'Resume', resumeGCode);
             setRightButton(true, red, 'Stop', stopAndRecover);
             break;
         case 'Jog':
         case 'Home':
         case 'Run':
-            setLeftButton(false, gray, 'Start', null);
+            setLeftButton(false, gray, singleBlockEnabled ? 'Step' : 'Start', null);
             setRightButton(true, red, 'Pause', pauseGCode);
             break;
         case 'Check':

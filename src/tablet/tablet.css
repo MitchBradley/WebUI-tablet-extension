@@ -74,9 +74,37 @@
   text-wrap: nowrap;
   flex: 1 1;
 }
+.gcode-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1;
+  min-height: 0;
+}
 #gcode {
   background-color: lavenderblush;
   flex: 1 1;
+}
+/* Line waiting for a single-block step to release it */
+#gcode.line-waiting::selection {
+  background-color: #ffffa8;
+}
+#gcode.line-waiting::-moz-selection {
+  background-color: #ffffa8;
+}
+/* Line currently executing */
+#gcode.line-executing::selection {
+  background-color: lightgreen;
+}
+#gcode.line-executing::-moz-selection {
+  background-color: lightgreen;
+}
+#btn-singleblock {
+  position: absolute;
+  top: 0.25em;
+  right: 0.1em;
+  z-index: 1;
+  width: 2em;
 }
 #tablet-dropdown-menu {
   max-height: 100vh;
