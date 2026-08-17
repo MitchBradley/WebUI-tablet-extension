@@ -3,6 +3,18 @@
 // by extracting just the parseLine() function and using Babel to
 // translate that to older Javascript
 
+// http://linuxcnc.org/docs/html/gcode/overview.html#gcode:comments
+// Comments can be embedded in a line using parentheses () or for the remainder of a line
+// using a semi-colon. The semi-colon is not treated as the start of a comment when enclosed
+// in parentheses. Module-scope (not just parseLine's) so subfile.js can apply the same
+// normalization when scanning for $sd/run=/$localfs/run= lines.
+const stripComments = (line) => {
+    const re1 = new RegExp(/\s*\([^\)]*\)/g); // Remove anything inside the parentheses
+    const re2 = new RegExp(/\s*;.*/g); // Remove anything after a semi-colon to the end of the line, including preceding spaces
+    const re3 = new RegExp(/\s+/g);
+    return line.replace(re1, '').replace(re2, '').replace(re3, '');
+};
+
 // @param {string} line The G-code line
 const parseLine = (() => {
     // http://reprap.org/wiki/G-code#Special_fields
@@ -20,16 +32,6 @@ const parseLine = (() => {
             cs ^= c;
         }
         return cs;
-    };
-    // http://linuxcnc.org/docs/html/gcode/overview.html#gcode:comments
-    // Comments can be embedded in a line using parentheses () or for the remainder of a line
-    // using a semi-colon. The semi-colon is not treated as the start of a comment when enclosed
-    // in parentheses.
-    const stripComments = (line) => {
-        const re1 = new RegExp(/\s*\([^\)]*\)/g); // Remove anything inside the parentheses
-        const re2 = new RegExp(/\s*;.*/g); // Remove anything after a semi-colon to the end of the line, including preceding spaces
-        const re3 = new RegExp(/\s+/g);
-        return line.replace(re1, '').replace(re2, '').replace(re3, '');
     };
 
     const get_gcode_number = (argument) => {
@@ -56,6 +58,33 @@ const parseLine = (() => {
         const s = new LinePos(line);
 
         if (s.line.length && s.line[0] == '$') {
+            return result;
+        }
+
+        // Canonical casing, matching GCode.cpp's "Step 0 - remove whitespace
+        // and comments and convert to upper case" (whitespace/comments are
+        // already gone via stripComments() above). Done after the '$' check
+        // so command paths like $sd/run=name.nc keep their original,
+        // filesystem-significant casing.
+        s.line = s.line.toUpperCase();
+
+        // O-word flow control line: the whole line is O<label>KEYWORD[expr],
+        // nothing else -- see FluidNC/src/GCode.cpp's O-word dispatch and
+        // FlowControl.cpp/flowcontrol.js.
+        if (s.line[0] === 'O') {
+            s.pos = 1;
+            const oLabel = read_float(s);
+            if (isNaN(oLabel)) {
+                result.err = true;
+                return result;
+            }
+            result.jump = flowcontrol(oLabel, s, options.lineIndex);
+            return result;
+        }
+
+        if (isSkipping()) {
+            // skip_blocks: suppress both '#' assignments and ordinary words,
+            // same as GCode.cpp's skip_blocks checks.
             return result;
         }
 

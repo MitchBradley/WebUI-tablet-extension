@@ -21,31 +21,104 @@ class LinePos {
 
 let assignments = [];
 
+// Named params starting with '_' are global (see Parameters.cpp's
+// global_named_params) -- shared across every nesting level regardless of
+// $sd/run=/$localfs/run= calls.
 let named_params = new Map();
 
-// We do not implement predefined parameters because they exist in the
-// context of the controller to which we do not have direct access. 
+// Named params NOT starting with '_' are local to the current file/job (see
+// Job.h's JobSource::_local_params) -- a fresh, empty scope per $sd/run=/
+// $localfs/run= invocation, discarded when that sub-file finishes, so two
+// files (or a file and its caller) can both use e.g. #<row> as a private
+// scratch variable without clobbering each other. jobParamStack[0] is the
+// scope for the top-level program itself (running any file, including the
+// one the user loaded, is "a job" on real hardware -- see Parameters.cpp's
+// Job::active() gate). subfile.js pushes/pops on top of this for each
+// $sd/run=/$localfs/run= call.
+let jobParamStack = [new Map()];
+
+const params_push_job_scope = () => {
+    jobParamStack.push(new Map());
+};
+const params_pop_job_scope = () => {
+    if (jobParamStack.length > 1) {
+        jobParamStack.pop();
+    }
+};
+const current_job_params = () => jobParamStack[jobParamStack.length - 1];
+
+// We do not implement most predefined parameters because they exist in the
+// context of the controller to which we do not have direct access.
 // Our primary purpose is visualization of a GCode program and predefined
 // parameters are usually not applicable to that.
 // Unused system parameter code is in system_parameters.js
+//
+// The current position is the one exception: toolpath.js's Toolpath does
+// track that itself, so #<_abs_x>/#<_abs_y>/#<_abs_z> (absolute machine
+// position) and #<_x>/#<_y>/#<_z> (work position) are implemented. Toolpath
+// calls set_current_position() every time it moves (see its setPosition()
+// and its G92/G92.1 handlers). Toolpath's own `position` field is already
+// the work-local (as-programmed) position -- g92offset is added only at
+// draw time (see its offsetG92()) to get the absolute/plotted point -- so
+// _x/_y/_z read `position` directly and _abs_x/_abs_y/_abs_z add the G92
+// offset back in. This simulator doesn't model per-WCS G10 offset tables,
+// so G92 is the only offset that can actually shift these.
+let currentPosition = { x: 0, y: 0, z: 0, g92x: 0, g92y: 0, g92z: 0 };
+const set_current_position = (pos) => {
+    currentPosition = pos;
+};
+const abs_position_axis = { _abs_x: 'x', _abs_y: 'y', _abs_z: 'z' };
+const work_position_axis = { _x: 'x', _y: 'y', _z: 'z' };
+
+const get_system_param = (name) => {
+    const key = name.toLowerCase();
+    if (key in abs_position_axis) {
+        const axis = abs_position_axis[key];
+        return currentPosition[axis] + currentPosition['g92' + axis];
+    }
+    if (key in work_position_axis) {
+        const axis = work_position_axis[key];
+        return currentPosition[axis];
+    }
+    return NaN;
+};
 
 let user_params = new Map();
 
+// Displayer runs the whole program twice per redraw (bbox-sizing pass, then
+// draw pass), each in a fresh Interpreter -- see simple-interpreter.js. Call
+// at the start of each pass so #-params (loop counters especially) start
+// from a clean slate both times, instead of the draw pass inheriting
+// whatever the bbox pass left behind.
+const params_init = () => {
+    assignments = [];
+    named_params.clear();
+    user_params.clear();
+    jobParamStack = [new Map()];
+};
+
+// 5061-5069: last probe position, one param per axis (X=5061, Y=5062,
+// Z=5063, ...). 5070: probe_succeeded. Real predefined-parameter ranges
+// otherwise stay unimplemented (see the comment above) since they reflect
+// controller state we don't have -- but the probe range is different: we
+// generate that value ourselves (see toolpath.js's probeMove()), so it's
+// ours to provide.
+const is_numbered_param_id = (id) => (id >= 1 && id <= 5000) || (id >= 5061 && id <= 5070);
+
 const set_numbered_param = (id, value) => {
-    if (id >= 1 && id <= 5000) {
+    if (is_numbered_param_id(id)) {
         return user_params.set(id, value);
     }
     return false;
 }
 const get_numbered_param = (id) => {
-    if (id >= 1 && id <= 5000) {
+    if (is_numbered_param_id(id)) {
         let value = user_params.get(id)
         return (value == undefined) ? NaN : value;
     }
     return NaN;
 }
 
-const get_system_param = (name) => NaN;
 const get_config_item = (name) => NaN;
 const set_config_item = (name, value) => {}
 
@@ -62,8 +135,9 @@ const get_param = (param_ref) => {
             if (!isNaN(result)) {
                return result;
             }
+            return named_params.get(param_ref.name);
         }
-        return named_params.get(param_ref.name);
+        return current_job_params().get(param_ref.name);
     }
     return get_numbered_param(param_ref.id);
 }
@@ -84,7 +158,7 @@ const get_param_ref = (s, param_ref) => {
     switch (c) {
         case '#':
             // Indirection resulting in param number
-            next_param_ref = new ParamRef()
+            let next_param_ref = new ParamRef()
             s.pos++;
             if (!get_param_ref(s, next_param_ref)) {
                 return false;
@@ -94,17 +168,19 @@ const get_param_ref = (s, param_ref) => {
         case '<':
             // Named parameter
             s.pos++;
-            while (s.pos < s.line.length) {
-                c = s.line[s.pos++]
-                if (c == '>') {
-                    return true
+            while ((c = s.line[s.pos]) && c != '>') {
+                s.pos++;
+                if (!/\s/.test(c)) {
+                    param_ref.name += c.toUpperCase();
                 }
-                param_ref.name += c;
             }
-            return false;
+            if (!c) {
+                return false;
+            }
+            s.pos++;
+            return true;
         case '[':
             // Expression evaluating to param number
-            s.pos++;
             param_ref.id = expression(s)
             return !isNaN(param_ref.id)
         default:
@@ -120,7 +196,11 @@ const set_param = (param_ref, value) => {
             set_config_item(param_ref.name, value);
             return;
         }
-        named_params.set(param_ref.name, value);
+        if (param_ref.name.startsWith('_')) {
+            named_params.set(param_ref.name, value);
+        } else {
+            current_job_params().set(param_ref.name, value);
+        }
         return;
     }
 
@@ -160,7 +240,12 @@ const read_number = (s, in_expression) => {
     return read_float(s);
 }
 
-// Process a #PREF=value assignment, with the initial # already consumed
+// Process a #PREF=value assignment, with the initial # already consumed.
+// A '#' token not followed by '=' is a bare parameter reference used as a
+// value rather than an assignment target -- e.g. "G43 #[400+#<_i>]", where
+// the tool-length-offset argument is read this way instead of via a letter
+// word. get_param_ref() already consumed it, so there's nothing further to
+// do; this isn't an error.
 const assign_param = (s) => {
     let param_ref = new ParamRef();
 
@@ -168,8 +253,7 @@ const assign_param = (s) => {
         return false;
     }
     if (s.line[s.pos] != '=') {
-        console.debug('Missing =');
-        return false;
+        return true;
     }
     s.pos++;
 

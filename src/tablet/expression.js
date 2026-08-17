@@ -2,17 +2,6 @@ const DEGRAD = 180 / Math.PI;
 const RADDEG = Math.PI / 180;
 const TOLERANCE_EQUAL = 0.00001;
 
-const Error = {
-    Ok: 0,
-    ExpressionDivideByZero: 1,
-    ExpressionInvalidArgument: 2,
-    ExpressionUnknownOp: 3,
-    ExpressionArgumentOutOfRange: 4,
-    ExpressionSyntaxError: 5,
-    GcodeUnsupportedCommand: 6,
-    BadNumberFormat: 7
-};
-
 const NGCBinaryOp = {
     NoOp: 0,
     DividedBy: 1,
@@ -262,7 +251,7 @@ const read_operation = (s) => {
             }
             return -1
 
-        case 'R':
+        case 'O':
             if (s.line[s.pos] === 'R') {
                 s.pos++;
                 return NGCBinaryOp.NotExclusiveOR;
@@ -408,21 +397,20 @@ const read_operation_unary = (s) => {
     return -1
 }
 
-const read_atan = (s) => {
+const read_atan = (s, value) => {
     if (s.line[s.pos] !== '/')
-        return Error.ExpressionSyntaxError;
+        return NaN;
 
     s.pos++;
 
     if (s.line[s.pos] !== '[')
-        return Error.ExpressionSyntaxError;
+        return NaN;
 
-    s.pos++;
     let argument2 = expression(s);
     if (isNaN(argument2))
         return NaN;
 
-    return Math.atan2(value[0], argument2) * DEGRAD; // value in radians, convert to degrees
+    return Math.atan2(value, argument2) * DEGRAD; // value in radians, convert to degrees
 }
 
 const read_unary = (s) => {
@@ -435,8 +423,8 @@ const read_unary = (s) => {
     if (s.line[s.pos] !== '[')
         return NaN;
 
-    s.pos++;
-    if (operation[0] === NGCUnaryOp.Exists) {
+    if (operation === NGCUnaryOp.Exists) {
+        s.pos++;
         let arg = '';
         let c;
         while ((c = s.line[s.pos]) && c !== ']') {
@@ -450,13 +438,13 @@ const read_unary = (s) => {
         return named_param_exists(arg) ? 1.0 : 0.0;
     }
     let value = expression(s);
-    if (isNan(value))
+    if (isNaN(value))
         return NaN;
 
-    if (operation[0] === NGCUnaryOp.ATAN) {
-        return read_atan(s);
+    if (operation === NGCUnaryOp.ATAN) {
+        return read_atan(s, value);
     }
-    return execute_unary(value, operation[0]);
+    return execute_unary(value, operation);
 }
 
 const expression = (s) => {

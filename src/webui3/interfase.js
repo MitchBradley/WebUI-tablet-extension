@@ -29,6 +29,46 @@ const downloadPreferences = () => {
     sendMessage({type:'download', target:'webui', id:'tablet', url:'preferences.json'});
 }
 
+// Pending fileRead()/download requests, keyed by a request-specific id --
+// generalizes what was originally two hardcoded, URL-string-matched
+// consumers (downloadPreferences() above and files_downloadFile() below)
+// into a shared mechanism any caller can use, the same way ESP3D-WEBUI's
+// (webui2) fileRead() is a generic building block -- see subfile.js's
+// $sd/run=/$localfs/run= support, the first caller that actually needs
+// concurrent, arbitrary reads rather than just "the one gcode file the
+// user picked".
+let pendingDownloads = new Map();
+let nextDownloadId = 1;
+
+// eventMsg.data.content.response comes back as a Blob over the WASM demo
+// bridge (see FluidNC/wasm/demo's fs-response handling) but as a plain
+// string from real WebUI-mm (see areas/index.tsx's processExtensionMessage
+// -> createNewRequest, typed string|Blob) -- handle both rather than
+// assuming one.
+const readResponseAsText = (response, cb) => {
+    if (typeof response === 'string') {
+        cb(response);
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => cb(reader.result);
+    reader.readAsText(response);
+}
+
+// path is POSIX-absolute ("/foo.nc"). Mirrors www/js/filetransport.js's
+// fileRead()/fileDownloadUrl(): SD-mounted files are served under "SD/",
+// LocalFS files at the plain path (FluidPath::canonPath() parses a leading
+// "/SD/" out of the string itself and falls back to LocalFS otherwise).
+// volume is webui2's FILE_VOLUME_SD ('sd') when that global exists (see
+// subfile.js), else the literal string 'sd' -- anything else means LocalFS.
+const fileRead = (volume, path, successFn, errorFn) => {
+    const prefix = volume === 'sd' ? 'SD' : '';
+    const url = (prefix + path).replace('//', '/');
+    const requestId = nextDownloadId++;
+    pendingDownloads.set(requestId, { successFn, errorFn });
+    sendMessage({type:'download', target:'webui', id:'tablet', url, requestId});
+}
+
 let gCodeFileExtensions = 'nc;gcode';
 const processPreferences = (preferences) => {
     settings = JSON.parse(preferences).settings;
@@ -173,21 +213,33 @@ const processMessage = (eventMsg) => {
                 grblHandleMessage(eventMsg.data.content)
                 // tabletShowMessage(eventMsg.data.content);
                 break
-            case 'download':
+            case 'download': {
                 const content = eventMsg.data.content
-                if (content.status=='success'){
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        if(content.initiator.url === 'preferences.json') {
-                            processPreferences(reader.result)
-                        } else {
-                            showGCode(reader.result)
-                        }
+                const requestId = content.initiator && content.initiator.requestId;
+                const pending = requestId !== undefined ? pendingDownloads.get(requestId) : undefined;
+                if (pending) {
+                    pendingDownloads.delete(requestId);
+                    if (content.status == 'success') {
+                        readResponseAsText(content.response, pending.successFn);
+                    } else if (pending.errorFn) {
+                        pending.errorFn(0, content.error);
                     }
-                    reader.readAsText(content.response);
-                } else {
+                    break;
                 }
-                break
+                // No matching pending fileRead() -- one of the two original,
+                // hardcoded download callers (downloadPreferences()/
+                // files_downloadFile()), which don't set requestId.
+                if (content.status=='success'){
+                    readResponseAsText(content.response, (text) => {
+                        if(content.initiator.url === 'preferences.json') {
+                            processPreferences(text)
+                        } else {
+                            showGCode(text)
+                        }
+                    });
+                }
+                break;
+            }
         }
     }
 }

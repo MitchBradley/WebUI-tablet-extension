@@ -4,8 +4,12 @@
 // from in to mm
 const in2mm = (val = 0) => val * 25.4;
 
-// noop
-// const noop = () => {};
+// noop() is deliberately not declared here -- www/js/printercmd.js already
+// declares a global `function noop(){}`, and since everything in this app
+// concatenates into one shared top-level scope (see gulpfile.js's
+// concatApp()), redeclaring it here as `const noop` collides with that
+// (SyntaxError: Identifier 'noop' has already been declared). The
+// printercmd.js one is used as this file's default addLine/addArcCurve.
 
 class Toolpath {
     g92offset = {
@@ -89,6 +93,42 @@ class Toolpath {
         if (this.modal.wcs !== wcsval) {
             this.setModal({ wcs: wcsval });
         }
+    }
+
+    // Shared by all four G38.x handlers below -- see the comment there for
+    // why they're all treated identically.
+    probeMove = (params, motionCode) => {
+        if (this.modal.motion !== motionCode) {
+            this.setModal({ motion: motionCode });
+        }
+
+        const v1 = {
+            x: this.position.x,
+            y: this.position.y,
+            z: this.position.z
+        };
+        const target = {
+            x: this.translateX(params.X, this.isRelativeDistance()),
+            y: this.translateY(params.Y, this.isRelativeDistance()),
+            z: this.translateZ(params.Z, this.isRelativeDistance())
+        };
+        const half = {
+            x: v1.x + (target.x - v1.x) / 2,
+            y: v1.y + (target.y - v1.y) / 2,
+            z: v1.z + (target.z - v1.z) / 2
+        };
+
+        this.offsetAddLine(v1, half);
+        this.setPosition(half.x, half.y, half.z);
+
+        // #5061-#5069: last probe position, one param per axis (see
+        // FluidNC/src/Parameters.cpp's axis_from_id(id, 5061)). This
+        // simulator only tracks X/Y/Z.
+        set_numbered_param(5061, half.x);
+        set_numbered_param(5062, half.y);
+        set_numbered_param(5063, half.z);
+        // #5070: probe_succeeded -- pretend every probe move finds contact.
+        set_numbered_param(5070, 1);
     }
 
     handlers = {
@@ -338,32 +378,32 @@ class Toolpath {
                 this.setModal({ units: 'G21' });
             }
         },
-        // G38.x: Straight Probe
+        // G38.x: Straight Probe. We have no visibility into a probe
+        // switch's actual trip point, so -- per the same idea as
+        // FluidNC's probe_succeeded/#5061-#5069 (MotionControl.cpp/
+        // Parameters.cpp) -- this pretends every probe move trips exactly
+        // halfway between the start and the programmed target, for all
+        // four variants alike (toward/away, error-on-fail or not: none of
+        // that distinction matters when we're just guessing). See
+        // probeMove() below.
         // G38.2: Probe toward workpiece, stop on contact, signal error if failure
-        'G38.2': (params) => {
-            if (this.modal.motion !== 'G38.2') {
-                this.setModal({ motion: 'G38.2' });
-            }
-        },
+        'G38.2': (params) => this.probeMove(params, 'G38.2'),
         // G38.3: Probe toward workpiece, stop on contact
-        'G38.3': (params) => {
-            if (this.modal.motion !== 'G38.3') {
-                this.setModal({ motion: 'G38.3' });
-            }
-        },
+        'G38.3': (params) => this.probeMove(params, 'G38.3'),
         // G38.4: Probe away from workpiece, stop on loss of contact, signal error if failure
-        'G38.4': (params) => {
-            if (this.modal.motion !== 'G38.4') {
-                this.setModal({ motion: 'G38.4' });
-            }
-        },
+        'G38.4': (params) => this.probeMove(params, 'G38.4'),
         // G38.5: Probe away from workpiece, stop on loss of contact
-        'G38.5': (params) => {
-            if (this.modal.motion !== 'G38.5') {
-                this.setModal({ motion: 'G38.5' });
-            }
+        'G38.5': (params) => this.probeMove(params, 'G38.5'),
+        // G43: Tool Length Offset (fixed table, by tool/H number). Not part
+        // of the FluidNC grammar itself (see GCode.cpp: "G43 NOT
+        // SUPPORTED"), but some post-processors emit it with a bare value
+        // instead of an H-word (e.g. "G43 #[400+#<_i>]"); parsed and
+        // ignored, same as G43.1 -- tool length offset doesn't affect
+        // toolpath geometry in this displayer.
+        'G43': (params) => {
         },
-        // G43.1: Tool Length Offset
+        // G43.1: Tool Length Offset (dynamic, by Z value). Parsed and
+        // ignored -- see G43 above.
         'G43.1': (params) => {
             if (this.modal.tlo !== 'G43.1') {
                 this.setModal({ tlo: 'G43.1' });
@@ -457,6 +497,11 @@ class Toolpath {
                     this.position.z = zmm;
                 }
             }
+            // G92 mutates position/g92offset directly rather than through
+            // setPosition() -- re-publish here too, or #<_abs_x>/etc. would
+            // read stale values until the next real move (see
+            // parameters.js's set_current_position()).
+            this.setPosition(this.position.x, this.position.y, this.position.z);
         },
         // G92.1: Cancel G92 offsets
         // Parameters
@@ -468,6 +513,7 @@ class Toolpath {
             this.g92offset.y = 0;
             this.position.z += this.g92offset.z;
             this.g92offset.z = 0;
+            this.setPosition(this.position.x, this.position.y, this.position.z);
         },
         // G93: Inverse Time Mode
         // In inverse time feed rate mode, an F word means the move should be completed in
@@ -618,14 +664,15 @@ class Toolpath {
         this.fn = { addLine, addArcCurve };
 
         const toolpath = new Interpreter({ handlers: this.handlers });
-        toolpath.getPosition = function() { return { ...this.position }};
-        toolpath.getModal = function() { return { ...this.modal }};
-        toolpath.setPosition = function(...pos) {
-            return this.setPosition(...pos);
-        };
-        toolpath.setModal = function(modal) {
-            return this.setModal(modal);
-        };
+        // Arrow functions here (not `function(){}`) so `this` stays bound
+        // to this Toolpath instance -- where position/modal actually live
+        // -- rather than to `toolpath`/`this.handlers` (an Interpreter,
+        // which has no position/modal of its own) when called as e.g.
+        // toolpath.getPosition().
+        toolpath.getPosition = () => ({ ...this.position });
+        toolpath.getModal = () => ({ ...this.modal });
+        toolpath.setPosition = (...pos) => this.setPosition(...pos);
+        toolpath.setModal = (modal) => this.setModal(modal);
 
         return toolpath;
     }
@@ -658,17 +705,28 @@ class Toolpath {
         return this.modal.plane === 'G19';
     }
     setPosition(...pos) {
+        const isUsable = (v) => typeof v === 'number' && !isNaN(v);
         if (typeof pos[0] === 'object') {
             const { x, y, z } = { ...pos[0] };
-            this.position.x = (typeof x === 'number') ? x : this.position.x;
-            this.position.y = (typeof y === 'number') ? y : this.position.y;
-            this.position.z = (typeof z === 'number') ? z : this.position.z;
+            this.position.x = isUsable(x) ? x : this.position.x;
+            this.position.y = isUsable(y) ? y : this.position.y;
+            this.position.z = isUsable(z) ? z : this.position.z;
         } else {
             const [x, y, z] = pos;
-            this.position.x = (typeof x === 'number') ? x : this.position.x;
-            this.position.y = (typeof y === 'number') ? y : this.position.y;
-            this.position.z = (typeof z === 'number') ? z : this.position.z;
+            this.position.x = isUsable(x) ? x : this.position.x;
+            this.position.y = isUsable(y) ? y : this.position.y;
+            this.position.z = isUsable(z) ? z : this.position.z;
         }
+        // Publish for #<_abs_x>/#<_abs_y>/#<_abs_z>/#<_x>/#<_y>/#<_z> -- see
+        // parameters.js's set_current_position()/get_system_param().
+        set_current_position({
+            x: this.position.x,
+            y: this.position.y,
+            z: this.position.z,
+            g92x: this.g92offset.x,
+            g92y: this.g92offset.y,
+            g92z: this.g92offset.z
+        });
     }
     translatePosition(position, newPosition, relative) {
         if (newPosition == undefined) {

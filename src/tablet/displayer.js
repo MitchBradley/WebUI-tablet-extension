@@ -483,7 +483,7 @@ const displayHandlers = {
 class ToolpathDisplayer {
     clear = () => { clearCanvas(); }
 
-    showToolpath = (gcode, modal, initialPosition) => {
+    showToolpath = async (gcode, modal, initialPosition) => {
         let drawBounds = false;
         switch (cameraAngle) {
         case 0:
@@ -512,7 +512,11 @@ class ToolpathDisplayer {
             drawMachineBounds(); //Adds the machine bounds to the bounding box
         }
 
-        const gcodeLines = gcode.split('\n');
+        // Expand $sd/run=/$localfs/run= into their referenced files' own
+        // lines once here, so both the bbox and draw passes below (and
+        // every iteration of any loop that calls $.../run=) see the same
+        // already-fetched content -- see subfile.js.
+        const gcodeLines = await expandProgram(gcode.split('\n'));
         new Toolpath(bboxHandlers).loadFromLinesSync(gcodeLines);
         transformCanvas();
         if (!bboxIsSet) {

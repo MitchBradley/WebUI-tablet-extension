@@ -29,8 +29,22 @@ const fromPairs = (pairs) => {
     return result;
 };
 
+// G/M-codes whose toolpath.js handler actually reads its params (motion
+// words, plus G92 and the tool-change M6). Everything else that shows up
+// mid-line -- G91, G20, G54, etc. -- is a modal-only setter that takes no
+// arguments of its own: a line like "G38.2 G91 F#<fast_rate> Z#<probe_limit>"
+// (real syntax -- see FluidNC/src/GCode.cpp, one code per modal group is
+// allowed per line, order doesn't matter) must still attach F/Z to G38.2,
+// not to G91.
+const STARTS_NEW_ARG_GROUP = new Set(['G0', 'G1', 'G2', 'G3', 'G38.2', 'G38.3', 'G38.4', 'G38.5', 'G92']);
+
 const partitionWordsByGroup = (words = []) => {
     const groups = [];
+    // Index into `groups` that trailing value-words (X/Y/Z/F/...) attach to.
+    // Stays put across a modal-only word so it doesn't steal a motion
+    // word's arguments; only a word in STARTS_NEW_ARG_GROUP (or T, which
+    // always takes its value directly) moves it.
+    let argGroupIndex = -1;
 
     for (let i = 0; i < words.length; ++i) {
         const word = words[i];
@@ -38,10 +52,15 @@ const partitionWordsByGroup = (words = []) => {
 
         if ((letter === 'G') || (letter === 'M') || (letter === 'T')) {
             groups.push([word]);
+            if (letter === 'T' || STARTS_NEW_ARG_GROUP.has(letter + word[1])) {
+                argGroupIndex = groups.length - 1;
+            }
             continue;
         }
 
-        if (groups.length > 0) {
+        if (argGroupIndex >= 0) {
+            groups[argGroupIndex].push(word);
+        } else if (groups.length > 0) {
             groups[groups.length - 1].push(word);
         } else {
             groups.push([word]);
@@ -131,11 +150,45 @@ class Interpreter {
     }
 
     loadFromLinesSync = (lines) => {
-        for (let i = 0; i < lines.length; ++i) {
-            const line = lines[i].trim();
-            if (line.length !== 0) {
-	       interpret(this, parseLine(line, {}));
+        // Fresh flow-control stack and parameter state for this pass --
+        // displayer.js runs the whole program twice (once to size the
+        // canvas, once to draw), each in a brand-new Toolpath/Interpreter,
+        // and both need to start from the same clean state as a real job
+        // would (see FlowControl.cpp's flowcontrol_init()).
+        flowcontrol_init();
+        params_init();
+
+        // Depth of flowContext at each PUSH_JOB_SCOPE, so POP_JOB_SCOPE can
+        // force-close anything a sub-file left open -- see
+        // flowcontrol.js's flowcontrol_depth()/flowcontrol_trim().
+        const flowDepthAtPush = [];
+
+        let i = 0;
+        while (i < lines.length) {
+            const entry = lines[i];
+            if (entry === PUSH_JOB_SCOPE) {
+                flowDepthAtPush.push(flowcontrol_depth());
+                params_push_job_scope();
+                i++;
+                continue;
             }
+            if (entry === POP_JOB_SCOPE) {
+                flowcontrol_trim(flowDepthAtPush.pop());
+                params_pop_job_scope();
+                i++;
+                continue;
+            }
+            const line = entry.trim();
+            let next = i + 1;
+            if (line.length !== 0) {
+                const result = parseLine(line, { lineIndex: i });
+                if (typeof result.jump === 'number') {
+                    next = result.jump;
+                } else {
+                    interpret(this, result);
+                }
+            }
+            i = next;
         }
     }
 }
