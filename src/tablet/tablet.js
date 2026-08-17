@@ -716,7 +716,22 @@ const scrollToLine = (lineNumber) => {
     const lineHeight = parseFloat(getComputedStyle(gCodeLines).getPropertyValue('line-height'));
     const gCodeText = gCodeLines.value;
 
-    gCodeLines.scrollTop = (lineNumber) * lineHeight;
+    // Only reframe when the target line is not already fully visible, so
+    // stepping to the next line does not jump the view around unnecessarily.
+    if (lineNumber > 0) {
+        const lineTop = (lineNumber - 1) * lineHeight;
+        const lineBottom = lineTop + lineHeight;
+        const viewTop = gCodeLines.scrollTop;
+        const viewBottom = viewTop + gCodeLines.clientHeight;
+        if (lineTop < viewTop) {
+            gCodeLines.scrollTop = lineTop;
+        } else if (lineBottom > viewBottom) {
+            const lineCenter = lineTop + lineHeight / 2;
+            gCodeLines.scrollTop = Math.max(0, lineCenter - gCodeLines.clientHeight / 2);
+        }
+    } else {
+        gCodeLines.scrollTop = 0;
+    }
 
     let start;
     let end;
@@ -724,7 +739,7 @@ const scrollToLine = (lineNumber) => {
         start = 0;
         end = 1;
     } else {
-        start = (lineNumber == 1) ? 0 : start = nthLineEnd(gCodeText, lineNumber) + 1;
+        start = (lineNumber == 1) ? 0 : nthLineEnd(gCodeText, lineNumber - 1) + 1;
         end = gCodeText.indexOf("\n", start);
     }
 
