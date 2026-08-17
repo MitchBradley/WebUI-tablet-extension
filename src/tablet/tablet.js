@@ -390,10 +390,12 @@ let grblReportingUnits = 0;  // Should be set from $10
 let oldCannotClick = null;
 let gCodeDisplayable = false;
 
-// Single-block (step) mode.  singleBlockEnabled tracks the on/off button
-// state, set optimistically when the button is clicked; setSingleBlock()
-// (grbl.js) does the actual controller communication and works even while a
-// job is actively running, not just while Idle.
+// Single-block (step) mode.  singleBlockEnabled reflects the controller's own
+// state -- whether the Pn: field in the latest status report contains 'Q',
+// FluidNC's letter for Control::_singleBlockPin -- not what we last clicked;
+// see updateSingleBlockState(), called from tabletGrblState() on every status
+// report. setSingleBlock() (grbl.js) does the actual controller communication
+// and works even while a job is actively running, not just while Idle.
 // stepPending tracks whether the current Hold was caused by single-block mode
 // pausing before the next line, as opposed to a manual feed hold, so the
 // left button can say "Step" instead of "Resume".
@@ -401,8 +403,20 @@ let singleBlockEnabled = false;
 let stepPending = false;
 
 const toggleSingleBlock = () => {
-    singleBlockEnabled = !singleBlockEnabled;
-    setSingleBlock(singleBlockEnabled);
+    // Just ask the controller to flip it; singleBlockEnabled, the button color,
+    // and highlight clearing all follow from the next status report, once the
+    // controller confirms the change, via updateSingleBlockState().
+    setSingleBlock(!singleBlockEnabled);
+};
+
+// Called from tabletGrblState() with each status report's parsed Pn: field
+// (grbl.pins, undefined if Pn: was absent -- i.e. no control pin is active).
+const updateSingleBlockState = (pins) => {
+    const enabled = !!(pins && pins.includes('Q'));
+    if (enabled === singleBlockEnabled) {
+        return;
+    }
+    singleBlockEnabled = enabled;
     const btn = id('btn-singleblock');
     if (btn) {
         btn.style.backgroundColor = singleBlockEnabled ? green : gray;
@@ -435,6 +449,7 @@ const showStepLine = (lineNumber) => {
 
 const tabletGrblState = (grbl) => {
     updateModal();
+    updateSingleBlockState(grbl.pins);
     const stateName = grbl.stateName;
 
     // Unit conversion factor - depends on both $13 setting and parser units
