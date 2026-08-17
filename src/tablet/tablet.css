@@ -102,7 +102,11 @@
 #btn-singleblock {
   position: absolute;
   top: 0.25em;
-  right: 0.1em;
+  /* #gcode has overflow-y: scroll (always-on), so clear its scrollbar width
+     (fixed px, not em, since that's a roughly fixed-size native browser/OS
+     control, not something that should scale with the page's font size) --
+     otherwise the scrollbar sits on top of the button and swallows clicks. */
+  right: 18px;
   z-index: 1;
   width: 2em;
 }

@@ -275,10 +275,29 @@ const detectStep = (msg) => {
     return true;
 }
 
-// Sets single-block (step) mode on the controller, using the
-// SingleBlockOn (0xAF) / SingleBlockOff (0xAE) realtime commands.
+// Sets single-block (step) mode on the controller. FluidNC represents this as a
+// virtual "pin" at index 63 (Channel::MaxPinIndex), toggled via the same
+// UTF8-encoded PinLow/PinHigh pin-event codepoints used for io-expander pins (see
+// Channel.h/Channel.cpp), rather than a dedicated realtime command -- this works
+// even while a job is actively running, unlike a $ command.
+//
+// sendRealtimeCmd ultimately goes through SendPrinterCommand() -> encodeURI(cmd)
+// (see www/js/printercmd.js), which UTF8-encodes each character of the string by
+// its *codepoint*, the same as a browser's native WebSocket text-frame encoding
+// would. So, like the existing single-byte realtime/override codes elsewhere in
+// this file (e.g. '\x92'), the right thing to send is the target codepoint
+// itself, as one JS character, and let that encoding produce the wire bytes --
+// not the wire bytes typed out directly as if they were separate characters,
+// which would each get UTF8-encoded again on top and never reconstruct the
+// intended codepoint.
+//
+// Pin index 63: low (off) codepoint = 0x100+63 = 0x13f, high (on) = 0x140+63 = 0x17f.
+// (\x can only encode 00-ff; codepoints above that need \u.)
+const singleBlockOffCode = '\u013f';
+const singleBlockOnCode  = '\u017f';
+
 const setSingleBlock = (enabled) => {
-    sendRealtimeCmd(enabled ? '\xaf' : '\xae');
+    sendRealtimeCmd(enabled ? singleBlockOnCode : singleBlockOffCode);
 }
 
 const grblHandleMessage = (msg) => {
