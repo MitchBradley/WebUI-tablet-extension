@@ -308,7 +308,10 @@ const attachApp = (container) => {
                 div('messagepane', 'col-5', [
                     div('gcode-states', 'msg', 'G0'),
                     div('messages', 'msg', "(Tablet UI " + getVersion() + ')'),
-                    textarea('gcode', 'msg', 'GCode File Display', '')
+                    div('gcode-wrap', 'gcode-wrap', [
+                        button('btn-singleblock', 'btn-tablet', '🐢', 'Toggle single-block (step) mode', toggleSingleBlock, ''),
+                        textarea('gcode', 'msg', 'GCode File Display', '')
+                    ])
                 ]),
                 div('previewpane', 'col-tablet col-7', [
                     element('canvas', 'toolpath', 'previewer', ''),

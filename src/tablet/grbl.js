@@ -144,6 +144,16 @@ const pauseGCode = () => {
 
 const resumeGCode = () => {
     sendRealtimeCmd('\x7e'); // '~'
+    // Clicking/tapping the Resume/Step button moves focus to it, which hides
+    // the gcode textarea's current-line selection highlight (browsers only
+    // paint a colored selection while the field is focused). Reclaim focus so
+    // the highlighted line stays visible while that line executes.
+    const gCodeLines = id('gcode');
+    if (gCodeLines) {
+        gCodeLines.focus({ preventScroll: true });
+        gCodeLines.classList.remove('line-waiting');
+        gCodeLines.classList.add('line-executing');
+    }
 }
 
 const grblReset = () => {
@@ -252,6 +262,25 @@ const grblHandleReset = (msg) => {
     setupFluidNC();
 }
 
+// Recognizes a single-block (step) mode pause report --
+// "[MSG:INFO: Step <path>:<line> <preview>]" -- and, if msg is one,
+// dispatches its line number to showStepLine(). Returns true if msg was
+// a step report, so the caller knows it has been handled.
+const detectStep = (msg) => {
+    const stepMatch = msg.match(/^\[MSG:INFO: Step \S+:(\d+) /);
+    if (!stepMatch) {
+        return false;
+    }
+    showStepLine(parseInt(stepMatch[1]));
+    return true;
+}
+
+// Sets single-block (step) mode on the controller, using the
+// SingleBlockOn (0xAF) / SingleBlockOff (0xAE) realtime commands.
+const setSingleBlock = (enabled) => {
+    sendRealtimeCmd(enabled ? '\xaf' : '\xae');
+}
+
 const grblHandleMessage = (msg) => {
     tabletShowMessage(msg);
 
@@ -266,6 +295,10 @@ const grblHandleMessage = (msg) => {
 
     if (msg.startsWith('[MSG: Files changed]')) {
         files_refreshFiles(files_currentPath);
+        return;
+    }
+
+    if (detectStep(msg)) {
         return;
     }
 
