@@ -423,27 +423,113 @@ const updateSingleBlockState = (pins) => {
     }
     if (!singleBlockEnabled) {
         stepPending = false;
-        const gCodeLines = id('gcode');
-        if (gCodeLines) {
-            gCodeLines.classList.remove('line-waiting', 'line-executing');
-            gCodeLines.setSelectionRange(0, 0);
+        markGCodeLine(0, null);
+        // Single-block execution may have left the viewer showing a nested
+        // $sd/run=/$localfs/run= file (showStepLine, below) -- switch back
+        // to the top-level job file. gCodeFilename's own cache entry was
+        // populated on the original load (showGCode), so this is normally
+        // just a cache hit, not a re-fetch.
+        const topLevelPath = gCodeFilename ? qualifySDPath(gCodeFilename) : '';
+        if (topLevelPath && topLevelPath !== gcodeDisplayedPath) {
+            loadStepFile(topLevelPath, () => {});
         }
     }
 };
 
+// The path of the file currently shown in the gcode viewer -- the top-level
+// job file normally, but temporarily a nested $sd/run=/$localfs/run= file's
+// path while single-block execution is paused inside it. Kept in sync with
+// gCodeFilename (the top-level file) in tabletLoadGCodeFile()/showGCode().
+// Always fully-qualified (e.g. "/sd/foo.gcode"), matching what FluidNC's
+// Step message reports (Job::nest()'s in_channel->name(), which is now
+// FluidPath::canonPath()'s fully-qualified output -- see FileStream.cpp) --
+// fileRead() (filetransport.js) expects the same, resolving the volume from
+// the path itself rather than needing it split out beforehand.
+let gcodeDisplayedPath = '';
+
+// Job files are always run via $sd/run= (runGCode(), below), so the
+// top-level file's path is always SD-relative; qualify it the same way
+// interface.js's files_downloadFile() now does.
+const qualifySDPath = (name) => '/sd' + (name.startsWith('/') ? name : '/' + name);
+
+// Splits a fully-qualified path's leading volume component ("/sd/...",
+// "/littlefs/...", also accepting the "/localfs/"/"/spiffs/" aliases
+// FluidPath::canonPath() itself recognizes) into subFileCache's own terms
+// (subfile.js): { volume: FILE_VOLUME_SD/FILE_VOLUME_FLASH, tail: the rest
+// of the path, unqualified }. Only used for that cache's key scheme -- a
+// purely client-side bookkeeping detail, unrelated to how file reads are
+// actually issued (those pass the fully-qualified path straight through).
+// Returns null if path doesn't start with a recognized volume component.
+const splitGCodeVolumePath = (path) => {
+    const m = /^\/(sd|littlefs|localfs|spiffs)(\/.*)$/i.exec(path);
+    if (!m) {
+        return null;
+    }
+    const volume = m[1].toLowerCase() === 'sd' ? FILE_VOLUME_SD : FILE_VOLUME_FLASH;
+    return { volume: volume, tail: m[2] };
+};
+
+const subFileCacheKey = (path) => {
+    const split = splitGCodeVolumePath(path);
+    return split && (split.volume + ':' + split.tail);
+};
+
+// Switches the gcode viewer to show path's content, calling then() once
+// done (whether or not the switch succeeded). Checks subFileCache
+// (subfile.js) first -- populated whenever the visualizer expands a
+// $sd/run=/$localfs/run= line for toolpath preview, or by an earlier call
+// here -- before falling back to a fresh read.
+const loadStepFile = (path, then) => {
+    const cacheKey = subFileCacheKey(path);
+    const cached = cacheKey && subFileCache.get(cacheKey);
+    if (cached) {
+        setGCodeViewerFile(path, cached.join('\n'));
+        then();
+        return;
+    }
+    if (typeof fileRead !== 'function') {
+        then();  // Can't fetch in this WebUI; leave whatever was displayed.
+        return;
+    }
+    // path is already fully-qualified -- fileRead() passes it straight to
+    // the server, which resolves the volume itself; the volume argument
+    // here is unused (see filetransport.js).
+    fileRead(FILE_VOLUME_SD, path,
+        (content) => {
+            if (cacheKey) {
+                subFileCache.set(cacheKey, content.split('\n'));
+            }
+            setGCodeViewerFile(path, content);
+            then();
+        },
+        () => then());  // Fetch failed; leave whatever was displayed.
+};
+
+const setGCodeViewerFile = (path, gcode) => {
+    gcodeDisplayedPath = path;
+    setGCodeText(gcode);
+    gcodeRenderRows();
+    setHTML('filename', path);
+};
+
 // Called from grbl.js's detectStep() when a single-block pause is reported,
-// with the line number it paused before.
-const showStepLine = (lineNumber) => {
+// with the path and line number it paused before. The path can name a
+// nested $sd/run=/$localfs/run= file, not just the top-level job file.
+const showStepLine = (path, lineNumber) => {
     stepPending = true;
     setText('line', lineNumber);
+    if (path !== gcodeDisplayedPath) {
+        loadStepFile(path, () => showStepLineInCurrentFile(lineNumber));
+        return;
+    }
+    showStepLineInCurrentFile(lineNumber);
+};
+
+const showStepLineInCurrentFile = (lineNumber) => {
     if (gCodeDisplayable) {
         scrollToLine(lineNumber);
     }
-    const gCodeLines = id('gcode');
-    if (gCodeLines) {
-        gCodeLines.classList.remove('line-executing');
-        gCodeLines.classList.add('line-waiting');
-    }
+    markGCodeLine(lineNumber, 'waiting');
     setLeftButton(true, green, 'Step', resumeGCode);
 };
 
@@ -723,13 +809,186 @@ const arrayToXYZ = (a) => {
     }
 }
 
+// ---- Virtualized gcode line viewer ----
+// The full file is kept as one string (gcodeText); gcodeLineOffsets is a
+// lazily-extended index of per-line start offsets (Uint32Array), grown
+// forward on demand rather than built eagerly for the whole file up front --
+// typical access (stepping forward through a job, occasionally jumping back
+// to an already-visited line for a loop) only ever needs a small,
+// incrementally-growing prefix of it; only a jump into never-before-visited
+// territory (e.g. dragging the scrollbar straight to a distant, unvisited
+// part of a huge file) costs a scan proportional to the jump distance, same
+// as any other approach would.
+//
+// Only a handful of <div> rows are ever created -- recycled and
+// repositioned/relabeled as the view scrolls -- rather than one per file
+// line or one string per file line, which is what keeps memory bounded
+// regardless of file size.
+const GCODE_ROW_BUFFER = 2;
+
+let gcodeText = '';
+let gcodeLineOffsets = null;  // Uint32Array; offsets[i] = start of line i+1
+let gcodeKnownUpTo = 0;       // highest line number with a known offset
+let gcodeLineCount = 0;
+let gcodeLineHeight = 0;
+let gcodeMarkedLine = 0;      // 0 = no line marked
+let gcodeMarkedState = null;  // 'waiting' | 'executing' | null
+let gcodeRowPool = [];
+let gcodeScrollSyncWired = false;
+
+const ensureGCodeLineHeight = () => {
+    if (gcodeLineHeight) {
+        return;
+    }
+    const scroller = id('gcode-scroller');
+    if (!scroller) {
+        return;
+    }
+    gcodeLineHeight = parseFloat(getComputedStyle(scroller).getPropertyValue('line-height')) || 0;
+};
+
+const setGCodeText = (text) => {
+    gcodeText = text || '';
+    gcodeLineCount = gcodeText ? gcodeText.split('\n').length : 0;
+    if (gcodeLineCount > 0) {
+        gcodeLineOffsets = new Uint32Array(gcodeLineCount);
+        gcodeLineOffsets[0] = 0;
+        gcodeKnownUpTo = 1;
+    } else {
+        gcodeLineOffsets = null;
+        gcodeKnownUpTo = 0;
+    }
+    gcodeMarkedLine = 0;
+    gcodeMarkedState = null;
+
+    const scroller = id('gcode-scroller');
+    if (!scroller) {
+        return;
+    }
+    ensureGCodeLineHeight();
+    // Deferred to here, rather than run at script-load time, because the
+    // scroller doesn't exist yet when this file is first parsed; showGCode()
+    // (below), which calls this, only ever runs after the DOM is built.
+    if (!gcodeScrollSyncWired) {
+        scroller.onscroll = () => gcodeRenderRows();
+        gcodeScrollSyncWired = true;
+    }
+    scroller.scrollTop = 0;
+    const spacer = id('gcode-spacer');
+    if (spacer) {
+        spacer.style.height = (gcodeLineCount * gcodeLineHeight) + 'px';
+    }
+};
+
+// Extends gcodeLineOffsets, if needed, to know at least targetLine's start
+// offset, scanning forward from the end of what's already known.
+const extendGCodeIndex = (targetLine) => {
+    if (!gcodeLineOffsets || targetLine <= gcodeKnownUpTo) {
+        return;
+    }
+    let searchFrom = gcodeLineOffsets[gcodeKnownUpTo - 1];
+    while (gcodeKnownUpTo < targetLine && gcodeKnownUpTo < gcodeLineCount) {
+        const nl = gcodeText.indexOf('\n', searchFrom);
+        if (nl < 0) {
+            break;
+        }
+        gcodeLineOffsets[gcodeKnownUpTo] = nl + 1;
+        gcodeKnownUpTo++;
+        searchFrom = nl + 1;
+    }
+};
+
+const gcodeLineText = (lineNumber) => {
+    if (!gcodeLineOffsets || lineNumber < 1 || lineNumber > gcodeLineCount) {
+        return '';
+    }
+    extendGCodeIndex(Math.min(lineNumber + 1, gcodeLineCount));
+    const start = gcodeLineOffsets[lineNumber - 1];
+    const end = (lineNumber < gcodeLineCount) ? gcodeLineOffsets[lineNumber] - 1 : gcodeText.length;
+    return gcodeText.slice(start, end);
+};
+
+const gcodeCreateRow = () => {
+    const numCell = element('div', '', 'gcode-line-num', '');
+    const textCell = element('div', '', 'gcode-line-text', '');
+    const row = element('div', '', 'gcode-line', [numCell, textCell]);
+    row.numCell = numCell;
+    row.textCell = textCell;
+    id('gcode-scroller').appendChild(row);
+    return row;
+};
+
+const gcodeRenderRows = () => {
+    const scroller = id('gcode-scroller');
+    if (!scroller) {
+        return;
+    }
+    ensureGCodeLineHeight();
+    const emptyMsg = id('gcode-empty-msg');
+    if (!gcodeLineCount) {
+        if (emptyMsg) {
+            emptyMsg.style.display = '';
+        }
+        gcodeRowPool.forEach((row) => { row.style.display = 'none'; });
+        return;
+    }
+    if (emptyMsg) {
+        emptyMsg.style.display = 'none';
+    }
+    if (!gcodeLineHeight) {
+        return;  // Can't position rows without it; a later render will retry.
+    }
+    const topLine = Math.max(1, Math.floor(scroller.scrollTop / gcodeLineHeight) + 1);
+    const visibleCount = Math.max(1, Math.ceil(scroller.clientHeight / gcodeLineHeight) + GCODE_ROW_BUFFER);
+    while (gcodeRowPool.length < visibleCount) {
+        gcodeRowPool.push(gcodeCreateRow());
+    }
+    for (let i = 0; i < gcodeRowPool.length; i++) {
+        const row = gcodeRowPool[i];
+        const lineNumber = topLine + i;
+        if (lineNumber > gcodeLineCount) {
+            row.style.display = 'none';
+            continue;
+        }
+        row.style.display = '';
+        row.style.top = ((lineNumber - 1) * gcodeLineHeight) + 'px';
+        row.numCell.textContent = String(lineNumber);
+        row.textCell.textContent = gcodeLineText(lineNumber);
+        const marked = lineNumber === gcodeMarkedLine;
+        row.classList.toggle('line-waiting', marked && gcodeMarkedState === 'waiting');
+        row.classList.toggle('line-executing', marked && gcodeMarkedState === 'executing');
+    }
+};
+
+// Marks lineNumber with the given state ('waiting'/'executing'), or clears
+// any mark if lineNumber is 0. Called from showStepLine() (below) and
+// resumeGCode() (grbl.js), and from updateSingleBlockState()'s off-path.
+const markGCodeLine = (lineNumber, state) => {
+    gcodeMarkedLine = lineNumber;
+    gcodeMarkedState = state;
+    gcodeRenderRows();
+};
+
 const showGCode = (gcode) => {
     gCodeLoaded = gcode != '';
+    setGCodeText(gCodeLoaded ? gcode : '');
+    gcodeRenderRows();
     if (!gCodeLoaded) {
-        id('gcode').value = "(No GCode loaded)";
         displayer.clear();
     } else {
-        id('gcode').value = gcode;
+        // gCodeDisplayable is only true here for a real top-level file load
+        // (tabletLoadGCodeFile sets it false, and passes a placeholder
+        // message instead of real content, for the "too large to show"
+        // case) -- gcodeDisplayedPath was set alongside it, in that same
+        // branch. Caching it means returning to the top-level file after
+        // single-block execution has visited a nested one (showStepLine,
+        // above) doesn't need a redundant re-fetch.
+        if (gCodeDisplayable && gcodeDisplayedPath) {
+            const cacheKey = subFileCacheKey(gcodeDisplayedPath);
+            if (cacheKey) {
+                subFileCache.set(cacheKey, gcode.split('\n'));
+            }
+        }
         const initialPosition = {
             x: WPOS[0],
             y: WPOS[1],
@@ -762,52 +1021,31 @@ const askMachineBbox = () => {
     machineBboxAsked = true;
 }
 
-const nthLineEnd = (str, n) => {
-    if (n <= 0)
-        return 0;
-    const L = str.length;
-    let i = -1;
-    while (n-- && i++ < L) {
-        i = str.indexOf("\n", i);
-        if (i < 0) break;
-    }
-    return i;
-}
-
 const scrollToLine = (lineNumber) => {
-    const gCodeLines = id('gcode');
-    const lineHeight = parseFloat(getComputedStyle(gCodeLines).getPropertyValue('line-height'));
-    const gCodeText = gCodeLines.value;
-
-    // Only reframe when the target line is not already fully visible, so
-    // stepping to the next line does not jump the view around unnecessarily.
-    if (lineNumber > 0) {
-        const lineTop = (lineNumber - 1) * lineHeight;
-        const lineBottom = lineTop + lineHeight;
-        const viewTop = gCodeLines.scrollTop;
-        const viewBottom = viewTop + gCodeLines.clientHeight;
-        if (lineTop < viewTop) {
-            gCodeLines.scrollTop = lineTop;
-        } else if (lineBottom > viewBottom) {
-            const lineCenter = lineTop + lineHeight / 2;
-            gCodeLines.scrollTop = Math.max(0, lineCenter - gCodeLines.clientHeight / 2);
+    const scroller = id('gcode-scroller');
+    if (!scroller) {
+        return;
+    }
+    ensureGCodeLineHeight();
+    if (gcodeLineHeight) {
+        // Only reframe when the target line is not already fully visible, so
+        // stepping to the next line does not jump the view around unnecessarily.
+        if (lineNumber > 0) {
+            const lineTop = (lineNumber - 1) * gcodeLineHeight;
+            const lineBottom = lineTop + gcodeLineHeight;
+            const viewTop = scroller.scrollTop;
+            const viewBottom = viewTop + scroller.clientHeight;
+            if (lineTop < viewTop) {
+                scroller.scrollTop = lineTop;
+            } else if (lineBottom > viewBottom) {
+                const lineCenter = lineTop + gcodeLineHeight / 2;
+                scroller.scrollTop = Math.max(0, lineCenter - scroller.clientHeight / 2);
+            }
+        } else {
+            scroller.scrollTop = 0;
         }
-    } else {
-        gCodeLines.scrollTop = 0;
     }
-
-    let start;
-    let end;
-    if (lineNumber <= 0) {
-        start = 0;
-        end = 1;
-    } else {
-        start = (lineNumber == 1) ? 0 : nthLineEnd(gCodeText, lineNumber - 1) + 1;
-        end = gCodeText.indexOf("\n", start);
-    }
-
-    gCodeLines.select();
-    gCodeLines.setSelectionRange(start, end);
+    gcodeRenderRows();
 };
 
 const runGCode = () => {
@@ -831,6 +1069,13 @@ const tabletLoadGCodeFile = (path, size) => {
     } else {
         gCodeDisplayable = true;
         setHTML('filename', gCodeFilename);
+        // files_downloadFile() (interface.js, webui2 core) always calls back
+        // into showGCode() with the fetched content -- set the path it'll
+        // apply to here, since that callback isn't ours to change. Must
+        // match the fully-qualified path files_downloadFile() itself now
+        // reads (interface.js), so this stays in sync with what a Step
+        // message reports for the same file.
+        gcodeDisplayedPath = qualifySDPath(gCodeFilename);
         files_downloadFile(gCodeFilename)
     }
 };

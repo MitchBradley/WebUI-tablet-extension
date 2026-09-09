@@ -68,14 +68,6 @@ const div = (id, cssclass, content) => {
 const columns = (id, extracssclass, content) => {
     return div(id, 'cols-tablet ' + extracssclass, content)
 }
-const textarea = (id, cssclass, placeholder, content) => {
-    const el = element('textarea', id, cssclass, content)
-    el.placeholder = placeholder
-    el.spellcheck = false
-    el.readonly = ''
-    return el
-}
-
 const button = (id, cssclass, content, title, click, value) => {
     const el = element('button', id, cssclass, content)
     el.type = 'button'
@@ -310,7 +302,10 @@ const attachApp = (container) => {
                     div('messages', 'msg', "(Tablet UI " + getVersion() + ')'),
                     div('gcode-wrap', 'gcode-wrap', [
                         button('btn-singleblock', 'btn-tablet', '🐢', 'Toggle single-block (step) mode', toggleSingleBlock, ''),
-                        textarea('gcode', 'msg', 'GCode File Display', '')
+                        div('gcode-scroller', 'msg gcode-scroller', [
+                            div('gcode-spacer', 'gcode-spacer', ''),
+                            div('gcode-empty-msg', 'gcode-empty-msg', '(No GCode loaded)')
+                        ])
                     ])
                 ]),
                 div('previewpane', 'col-tablet col-7', [

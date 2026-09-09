@@ -573,8 +573,7 @@ class ToolpathDisplayer {
 }
 
 const updateGcodeViewerAngle = () => {
-    const gcode = id('gcode').value;
-    displayer.cycleCameraAngle(gcode, modal, arrayToXYZ(WPOS));
+    displayer.cycleCameraAngle(gcodeText, modal, arrayToXYZ(WPOS));
 }
 
 const displayer = new ToolpathDisplayer();

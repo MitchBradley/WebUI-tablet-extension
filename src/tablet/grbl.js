@@ -144,16 +144,10 @@ const pauseGCode = () => {
 
 const resumeGCode = () => {
     sendRealtimeCmd('\x7e'); // '~'
-    // Clicking/tapping the Resume/Step button moves focus to it, which hides
-    // the gcode textarea's current-line selection highlight (browsers only
-    // paint a colored selection while the field is focused). Reclaim focus so
-    // the highlighted line stays visible while that line executes.
-    const gCodeLines = id('gcode');
-    if (gCodeLines) {
-        gCodeLines.focus({ preventScroll: true });
-        gCodeLines.classList.remove('line-waiting');
-        gCodeLines.classList.add('line-executing');
-    }
+    // Recolor the already-marked row from waiting to executing -- a plain
+    // class change on its pooled <div> (tablet.js), with no focus/selection
+    // dependency to work around, unlike the old textarea-based highlight.
+    markGCodeLine(gcodeMarkedLine, 'executing');
 }
 
 const grblReset = () => {
@@ -264,14 +258,16 @@ const grblHandleReset = (msg) => {
 
 // Recognizes a single-block (step) mode pause report --
 // "[MSG:INFO: Step <path>:<line> <preview>]" -- and, if msg is one,
-// dispatches its line number to showStepLine(). Returns true if msg was
-// a step report, so the caller knows it has been handled.
+// dispatches its path and line number to showStepLine(). Returns true if
+// msg was a step report, so the caller knows it has been handled. The path
+// matters because a running job can be paused inside a nested
+// $sd/run=/$localfs/run= file, not just the top-level one.
 const detectStep = (msg) => {
-    const stepMatch = msg.match(/^\[MSG:INFO: Step \S+:(\d+) /);
+    const stepMatch = msg.match(/^\[MSG:INFO: Step (\S+):(\d+) /);
     if (!stepMatch) {
         return false;
     }
-    showStepLine(parseInt(stepMatch[1]));
+    showStepLine(stepMatch[1], parseInt(stepMatch[2]));
     return true;
 }
 

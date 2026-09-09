@@ -81,31 +81,71 @@
   flex: 1 1;
   min-height: 0;
 }
-#gcode {
-  background-color: lavenderblush;
+#gcode-scroller {
+  /* .msg (above) supplies width/margin/font-size/overflow-y defaults; padding
+     is overridden to 0 here because absolutely-positioned children (the
+     recycled .gcode-line rows) are positioned relative to this element's
+     padding box, so any padding here would need to be added into every
+     row's "top" offset in JS. Horizontal padding is on the row cells
+     instead (below), where it doesn't affect vertical alignment. */
+  position: relative;
+  overflow-x: hidden;
   flex: 1 1;
+  min-height: 0;
+  padding: 0;
+  background-color: lavenderblush;
+}
+#gcode-spacer {
+  /* Occupies no visible width, but its height (set in JS to lineCount *
+     lineHeight) is what gives the scrollbar the correct range/proportions
+     for the whole file, even though only a handful of real rows exist. */
+  width: 1px;
+}
+#gcode-empty-msg {
+  padding: 2px;
+  color: #888;
+}
+.gcode-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  white-space: pre;
+  overflow: hidden;
+}
+.gcode-line-num {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 2.5em;
+  padding: 0 0.3em 0 2px;
+  text-align: right;
+  color: #888;
+  background-color: #f0f0f0;
+  user-select: none;
+}
+.gcode-line-text {
+  flex: 1 1 auto;
+  padding: 0 2px 0 0.2em;
 }
 /* Line waiting for a single-block step to release it */
-#gcode.line-waiting::selection {
-  background-color: #ffffa8;
-}
-#gcode.line-waiting::-moz-selection {
+.gcode-line.line-waiting .gcode-line-num,
+.gcode-line.line-waiting .gcode-line-text {
   background-color: #ffffa8;
 }
 /* Line currently executing */
-#gcode.line-executing::selection {
-  background-color: lightgreen;
-}
-#gcode.line-executing::-moz-selection {
+.gcode-line.line-executing .gcode-line-num,
+.gcode-line.line-executing .gcode-line-text {
   background-color: lightgreen;
 }
 #btn-singleblock {
   position: absolute;
   top: 0.25em;
-  /* #gcode has overflow-y: scroll (always-on), so clear its scrollbar width
-     (fixed px, not em, since that's a roughly fixed-size native browser/OS
-     control, not something that should scale with the page's font size) --
-     otherwise the scrollbar sits on top of the button and swallows clicks. */
+  /* #gcode-scroller has overflow-y: scroll (always-on, via .msg), so clear
+     its scrollbar width (fixed px, not em, since that's a roughly
+     fixed-size native browser/OS control, not something that should scale
+     with the page's font size) -- otherwise the scrollbar sits on top of
+     the button and swallows clicks. */
   right: 18px;
   z-index: 1;
   width: 2em;
