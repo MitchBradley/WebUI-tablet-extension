@@ -1,5 +1,5 @@
 #! /bin/bash
-if test $# == 0; then version=${USER}" "`date --rfc-3339=seconds`; else version=$1; fi
+if test $# == 0; then version=${USER}" "`date +"%Y-%m-%d %H:%M:%S%z"`; else version=$1; fi
 mkdir -p build
 cat src/tablet/*.css src/webui3/*.css >build/all.css
 curl -s -X POST --data-urlencode input@build/all.css https://www.toptal.com/developers/cssminifier/api/raw >build/tablet-min.css
