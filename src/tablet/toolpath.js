@@ -18,18 +18,40 @@ class Toolpath {
         z: 0
     };
 
-    offsetG92 = function(pos) {
+    // Per-WCS work offsets, held relative to G54 -- G54 is the displayer's
+    // reference frame, so its own offset is always zero. Only in-file
+    // G10 L2/L20 commands populate G55..G59 (see the 'G10' handler); a
+    // program that never touches G10 leaves every entry at zero and plots
+    // exactly as it did before WCS offsets were modelled. The active
+    // system's offset is added at draw time next to g92offset -- see
+    // applyOffsets().
+    wcsOffsets = {
+        G54: { x: 0, y: 0, z: 0 },
+        G55: { x: 0, y: 0, z: 0 },
+        G56: { x: 0, y: 0, z: 0 },
+        G57: { x: 0, y: 0, z: 0 },
+        G58: { x: 0, y: 0, z: 0 },
+        G59: { x: 0, y: 0, z: 0 }
+    };
+
+    activeWcsOffset = () => this.wcsOffsets[this.modal.wcs] || { x: 0, y: 0, z: 0 };
+
+    // Convert an as-programmed point in the active WCS to the plotted
+    // (absolute / machine-frame) point: add the G92 offset and the active
+    // work coordinate system's offset.
+    applyOffsets = function(pos) {
+        const wcs = this.activeWcsOffset();
         return {
-            x: pos.x + this.g92offset.x,
-            y: pos.y + this.g92offset.y,
-            z: pos.z + this.g92offset.z
+            x: pos.x + this.g92offset.x + wcs.x,
+            y: pos.y + this.g92offset.y + wcs.y,
+            z: pos.z + this.g92offset.z + wcs.z
         };
     }
     offsetAddLine = function(start, end) {
-        this.fn.addLine(this.modal, this.offsetG92(start), this.offsetG92(end));
+        this.fn.addLine(this.modal, this.applyOffsets(start), this.applyOffsets(end));
     }
     offsetAddArcCurve = function(start, end, center, rotations) {
-        this.fn.addArcCurve(this.modal, this.offsetG92(start), this.offsetG92(end), this.offsetG92(center), rotations);
+        this.fn.addArcCurve(this.modal, this.applyOffsets(start), this.applyOffsets(end), this.applyOffsets(center), rotations);
     }
 
     position = {
@@ -90,9 +112,22 @@ class Toolpath {
     };
 
     set_wcs = (wcsval) => {
-        if (this.modal.wcs !== wcsval) {
-            this.setModal({ wcs: wcsval });
+        if (this.modal.wcs === wcsval) {
+            return;
         }
+        // `position` is stored as programmed in the active WCS. Selecting a
+        // different system must not move the tool, so shift `position` by
+        // (old offset - new offset): the plotted point position+offset then
+        // stays put, and the next commanded move is interpreted in the new
+        // system's frame. Mirrors how the G92 handler keeps position and
+        // g92offset consistent.
+        const oldOff = this.activeWcsOffset();
+        const newOff = this.wcsOffsets[wcsval] || { x: 0, y: 0, z: 0 };
+        this.setModal({ wcs: wcsval });
+        this.position.x += oldOff.x - newOff.x;
+        this.position.y += oldOff.y - newOff.y;
+        this.position.z += oldOff.z - newOff.z;
+        this.setPosition(this.position.x, this.position.y, this.position.z);
     }
 
     // Shared by all four G38.x handlers below -- see the comment there for
@@ -344,8 +379,52 @@ class Toolpath {
         //   G4 P200
         'G4': (params) => {
         },
-        // G10: Coordinate System Data Tool and Work Offset Tables
+        // G10: Coordinate System Data Tool and Work Offset Tables.
+        // We honour the work-offset forms (L2 and L20); the tool-table
+        // forms (L1/L10/L11) don't affect toolpath geometry here.
+        //   G10 L2  P<n> X Y Z  - set system <n>'s offset directly, in the
+        //                        displayer's G54-relative machine frame.
+        //   G10 L20 P<n> X Y Z  - set system <n>'s offset so the current
+        //                        point reads as X Y Z in that system.
+        // P1..P6 map to G54..G59; P0 (or a missing P) means the active
+        // system. Axis words are optional -- an omitted axis is unchanged.
         'G10': (params) => {
+            const L = Number(params.L);
+            if (L !== 2 && L !== 20) {
+                return;
+            }
+            const wcsNames = ['G54', 'G55', 'G56', 'G57', 'G58', 'G59'];
+            const pIndex = (params.P === undefined) ? 0 : Number(params.P);
+            const name = (pIndex === 0) ? this.modal.wcs : wcsNames[pIndex - 1];
+            const target = name && this.wcsOffsets[name];
+            if (!target) {
+                return;
+            }
+            const before = { ...target };
+            const active = this.activeWcsOffset();
+            const axes = [
+                ['x', params.X, (v) => this.translateX(v, false)],
+                ['y', params.Y, (v) => this.translateY(v, false)],
+                ['z', params.Z, (v) => this.translateZ(v, false)]
+            ];
+            for (const [axis, word, toMm] of axes) {
+                if (word === undefined) {
+                    continue;
+                }
+                const value = toMm(word);  // absolute, inch->mm as needed
+                target[axis] = (L === 2)
+                    ? value
+                    : this.position[axis] + active[axis] + this.g92offset[axis] - value;
+            }
+            // If we just redefined the active system's own offset, keep the
+            // plotted point fixed by shifting `position` the opposite way
+            // (same reasoning as set_wcs).
+            if (name === this.modal.wcs) {
+                this.position.x += before.x - target.x;
+                this.position.y += before.y - target.y;
+                this.position.z += before.z - target.z;
+                this.setPosition(this.position.x, this.position.y, this.position.z);
+            }
         },
         // G17..19: Plane Selection
         // G17: XY (default)
@@ -719,13 +798,17 @@ class Toolpath {
         }
         // Publish for #<_abs_x>/#<_abs_y>/#<_abs_z>/#<_x>/#<_y>/#<_z> -- see
         // parameters.js's set_current_position()/get_system_param().
+        const wcs = this.activeWcsOffset();
         set_current_position({
             x: this.position.x,
             y: this.position.y,
             z: this.position.z,
             g92x: this.g92offset.x,
             g92y: this.g92offset.y,
-            g92z: this.g92offset.z
+            g92z: this.g92offset.z,
+            wcsx: wcs.x,
+            wcsy: wcs.y,
+            wcsz: wcs.z
         });
     }
     translatePosition(position, newPosition, relative) {

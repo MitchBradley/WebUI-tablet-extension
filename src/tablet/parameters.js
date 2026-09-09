@@ -61,9 +61,11 @@ const current_job_params = () => jobParamStack[jobParamStack.length - 1];
 // the work-local (as-programmed) position -- g92offset is added only at
 // draw time (see its offsetG92()) to get the absolute/plotted point -- so
 // _x/_y/_z read `position` directly and _abs_x/_abs_y/_abs_z add the G92
-// offset back in. This simulator doesn't model per-WCS G10 offset tables,
-// so G92 is the only offset that can actually shift these.
-let currentPosition = { x: 0, y: 0, z: 0, g92x: 0, g92y: 0, g92z: 0 };
+// offset and the active work coordinate system's offset back in. Toolpath
+// now models per-WCS G10 L2/L20 offsets (see toolpath.js's wcsOffsets and
+// its 'G10' handler), reported here as wcsx/wcsy/wcsz, so both G92 and a
+// non-G54 WCS can shift the absolute position.
+let currentPosition = { x: 0, y: 0, z: 0, g92x: 0, g92y: 0, g92z: 0, wcsx: 0, wcsy: 0, wcsz: 0 };
 const set_current_position = (pos) => {
     currentPosition = pos;
 };
@@ -74,7 +76,9 @@ const get_system_param = (name) => {
     const key = name.toLowerCase();
     if (key in abs_position_axis) {
         const axis = abs_position_axis[key];
-        return currentPosition[axis] + currentPosition['g92' + axis];
+        return currentPosition[axis]
+            + currentPosition['g92' + axis]
+            + (currentPosition['wcs' + axis] || 0);
     }
     if (key in work_position_axis) {
         const axis = work_position_axis[key];
@@ -121,6 +125,30 @@ const get_numbered_param = (id) => {
 
 const get_config_item = (name) => NaN;
 const set_config_item = (name, value) => {}
+
+// Backs EXISTS[...] in expressions (see expression.js's read_unary()).
+// LinuxCNC's EXISTS syntax is EXISTS[#<_foo>]; we also accept a bare name
+// (EXISTS[_foo]). The argument arrives upper-cased, matching how named
+// params are stored (see get_param_ref()). Scoping mirrors get_param():
+// '_'-prefixed names are system-or-global, everything else is local to
+// the current job/sub-file. Config items (leading '/') aren't modelled
+// here, so they never "exist".
+const named_param_exists = (name) => {
+    let search = name;
+    if (search.length > 3 && search.startsWith('#<') && search.endsWith('>')) {
+        search = search.slice(2, -1);
+    }
+    if (search.length === 0) {
+        return false;
+    }
+    if (search.startsWith('/')) {
+        return false;
+    }
+    if (search.startsWith('_')) {
+        return !isNaN(get_system_param(search)) || named_params.has(search);
+    }
+    return current_job_params().has(search);
+}
 
 const isAlpha = (c) => {
   return c.toLowerCase() != c.toUpperCase();
