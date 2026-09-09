@@ -61,6 +61,16 @@ const matchSubFileRun = (strippedLine) => {
     return { volume: subFileVolume(m[1].toUpperCase()), name: m[2] };
 };
 
+// fileRead() (filetransport.js) expects a fully-qualified path -- it no
+// longer derives one from a separate volume argument, resolving purely from
+// the path itself (matching FluidPath::canonPath() server-side). FILE_VOLUME_
+// SD/FLASH ("sd"/"flash") are WebUI's own volume identifiers, used for the
+// subFileCache key below, but "flash" isn't one of the volume names
+// canonPath() itself recognizes (it wants "littlefs", or the "localfs"/
+// "spiffs" aliases) -- so map to that separately when qualifying the path
+// for the actual read.
+const qualifySubFilePath = (volume, path) => '/' + (volume === FILE_VOLUME_SD ? 'sd' : 'littlefs') + path;
+
 const fetchSubFileLines = async (volume, name) => {
     const path = name.startsWith('/') ? name : '/' + name;
     const cacheKey = volume + ':' + path;
@@ -69,7 +79,7 @@ const fetchSubFileLines = async (volume, name) => {
     }
     let lines;
     try {
-        const content = await fileReadAsync(volume, path);
+        const content = await fileReadAsync(volume, qualifySubFilePath(volume, path));
         lines = content.split('\n');
     } catch (e) {
         console.warn('$.../run=' + name + ' could not be loaded: ' + e.message);
