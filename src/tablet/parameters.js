@@ -239,6 +239,16 @@ const set_param = (param_ref, value) => {
 
 // Gets a numeric value, either a literal number or a #-prefixed parameter value
 // Return NaN on error
+//
+// Unary +/- and unary functions (SIN[...], etc.) are recognized regardless of
+// in_expression -- see FluidNC/src/Parameters.cpp's read_number(), which
+// applies them unconditionally (its in_expression parameter is vestigial,
+// commented out at every call site) so that a plain G-code argument like
+// "Z-#<probe_drop>" negates the parameter instead of failing to parse. This
+// port used to gate both cases on in_expression, which silently dropped the
+// Z word from lines like FluidNC/HonuRouting/ProbeOne.nc's
+// "G38.2 G91 F#<fast_rate> Z-#<probe_drop>" (logged as "Bad number" and the
+// word list came out with no Z at all).
 const read_number = (s, in_expression) => {
     let c = s.line[s.pos];
     if (c == '#') {
@@ -252,18 +262,16 @@ const read_number = (s, in_expression) => {
     if (c == '[') {
         return expression(s);
     }
-    if (in_expression) {
-        if (isAlpha(c)) {
-            return read_unary(s)
-        }
-        if (c == '-') {
-            s.pos++;
-            return -read_number(s, in_expression);
-        }
-        if (c == '+') {
-            s.pos++;
-            return read_number(s, in_expression);
-        }
+    if (isAlpha(c)) {
+        return read_unary(s)
+    }
+    if (c == '-') {
+        s.pos++;
+        return -read_number(s, in_expression);
+    }
+    if (c == '+') {
+        s.pos++;
+        return read_number(s, in_expression);
     }
     return read_float(s);
 }
