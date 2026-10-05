@@ -21,6 +21,23 @@ const blockReload = (event) => {
 }
 window.onbeforeunload = blockReload;
 
+// Job-restart bookkeeping: remember which SD file is running and how far
+// along it is (percent complete, from the status report's SD field), so a
+// FluidNC crash or power loss does not lose track of the job. Position is
+// deliberately not stored here; a later enhancement may add a line number
+// once the status report exposes one for SD jobs.
+const JOB_PROGRESS_COOKIE = 'fluidnc_job_progress';
+const JOB_PROGRESS_MAX_AGE = 30 * 24 * 60 * 60; // 30 days, in seconds
+
+const saveJobProgress = (file, percent) => {
+    const value = encodeURIComponent(JSON.stringify({ file, percent }));
+    document.cookie = `${JOB_PROGRESS_COOKIE}=${value}; path=/; max-age=${JOB_PROGRESS_MAX_AGE}`;
+}
+
+const clearJobProgress = () => {
+    document.cookie = `${JOB_PROGRESS_COOKIE}=; path=/; max-age=0`;
+}
+
 const parseGrblStatus = (response) => {
     const grbl = {
         stateName: '',
@@ -191,6 +208,9 @@ const grblProcessStatus = (response) => {
         if (WCO) {
             MPOS = grblstate.wpos.map( (v,index) => v + WCO[index] );
         }
+    }
+    if (grblstate.sdName) {
+        saveJobProgress(grblstate.sdName, grblstate.sdPercent);
     }
 
     showGrblState();

@@ -1049,7 +1049,10 @@ const scrollToLine = (lineNumber) => {
 };
 
 const runGCode = () => {
-    gCodeFilename && sendCommand('$sd/run=' + gCodeFilename);
+    if (gCodeFilename) {
+        clearJobProgress();
+        sendCommand('$sd/run=' + gCodeFilename);
+    }
 };
 
 const tabletSelectGCodeFile = (filename) => {
