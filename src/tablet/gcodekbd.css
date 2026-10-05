@@ -20,8 +20,13 @@
   width: 100%;
   max-width: 1000px;
   background: #eaeaea;
-  margin: 50vh auto 0 auto;
-  transform: translateY(-50%);
+  /* Anchored near the bottom rather than centered, so a tall pad does not
+     run up under WebUI's header stripe */
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   padding: 10px;
 }
 
@@ -65,3 +70,45 @@
 .gk-space { flex-grow: 5; }
 .gk-close { flex-grow: 2; background: #dadada; }
 .gk-send  { flex-grow: 2; background: #55ffd7; }
+.gk-toggle { flex-grow: 2; background: #e7f3ff; }
+
+/* Wizard view: the letter keys are replaced by the wizard */
+.gk-wizard { display: none; }
+#gkPad.wizard .gk-wizard { display: block; }
+#gkPad.wizard .gk-letters { display: none; }
+
+.gk-selects {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.gk-select {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 22px;
+  padding: 8px 4px;
+  color: #000;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+}
+
+.gk-fields { margin: 10px 0; }
+
+.gk-field-row {
+  display: grid;
+  grid-template-columns: 120px repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 5px;
+}
+.gk-field-label {
+  font-size: 22px;
+  color: #000;
+  align-self: center;
+}
+.gk-field { background: #ffffd0; }
+/* The param row's second label sits in a button column; keep it next to its button */
+.gk-field-row .gk-field-label:nth-child(3) { text-align: right; padding-right: 8px; }
+/* A row with no active letters keeps its space but shows nothing */
+.gk-field-row.gk-blank * { visibility: hidden !important; }
+/* Keep a full-height line box when a param button has no letter */
+.gk-field::before { content: '\200b'; }
