@@ -1,0 +1,67 @@
+/* GCode keyboard - colors follow numpad.css */
+#gkWrap {
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s;
+}
+#gkWrap.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+#gkPad {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1000px;
+  background: #eaeaea;
+  margin: 50vh auto 0 auto;
+  transform: translateY(-50%);
+  padding: 10px;
+}
+
+#gkDisplay {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 5px;
+  margin-bottom: 10px;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+  color: #000;
+  font-size: 36px;
+  font-family: monospace;
+}
+#gkDisplay:focus { outline: none; }
+
+.gk-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.gk-key {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 28px;
+  color: #000;
+  background: #fff;
+  text-align: center;
+  padding: 12px 0;
+  border: 1px solid #c1c1c1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.gk-key:active { background: #c8dcf0; }
+
+.gk-del   { flex-grow: 2; background: #ffecd7; }
+.gk-nav   { flex-grow: 1.5; background: #ffecd7; }
+.gk-space { flex-grow: 5; }
+.gk-close { flex-grow: 2; background: #dadada; }
+.gk-send  { flex-grow: 2; background: #55ffd7; }

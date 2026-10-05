@@ -1061,6 +1061,10 @@ const addListeners = () => {
     id('mditext0').addEventListener('keyup', mdiEnterKey);
     id('mditext1').addEventListener('keyup', mdiEnterKey);
 
+    gcodekbd.init();
+    gcodekbd.attach('mditext0');
+    gcodekbd.attach('mditext1');
+
     numpad.init();
     for (let i = 0; i < tablet_n_axes; i++) {
         const axis = axisNames[i]
