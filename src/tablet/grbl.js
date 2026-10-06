@@ -167,11 +167,20 @@ const resumeGCode = () => {
     markGCodeLine(gcodeMarkedLine, 'executing');
 }
 
+// probe_failed_notification() is not defined in every host, so check
+// before calling it
+const notifyProbeFailed = (msg) => {
+    if (probewiz.pending > 0) {
+        probewiz.probeFailed(msg);
+    }
+    if (is_probing && typeof probe_failed_notification === 'function') {
+        probe_failed_notification(msg);
+    }
+}
+
 const grblReset = () => {
     sendRealtimeCmd('\x18');
-    if (is_probing) {
-        probe_failed_notification('Probe Canceled');
-    }
+    notifyProbeFailed('Probe Canceled');
 }
 
 const stopGCode = () => {
@@ -216,11 +225,16 @@ const grblProcessStatus = (response) => {
     showGrblState();
 }
 
+// [PRB:x,y,z:status]
 const grblGetProbeResult = (response) => {
     const tab1 = response.split(":");
     if (tab1.length > 2) {
         const status = parseInt(tab1[2].replace("]", "").trim());
-        if (is_probing) {
+        // The Probe Wizard's probes are handled separately from the
+        // dashboard's, whose finalize_probing() jogs Z by its own settings
+        if (probewiz.pending > 0) {
+            probewiz.probeResult(tab1[1].split(',').map(parseFloat), status === 1);
+        } else if (is_probing) {
             finalize_probing(status);
         }
     }
@@ -354,9 +368,7 @@ const grblHandleMessage = (msg) => {
         grblHandleError(msg);
     }
     if (msg.startsWith('ALARM:') || msg.startsWith('Hold:') || msg.startsWith('Door:')) {
-        if (is_probing) {
-            probe_failed_notification(msg);
-        }
+        notifyProbeFailed(msg);
         return;
     }
     if (msg.startsWith('Grbl ')) {

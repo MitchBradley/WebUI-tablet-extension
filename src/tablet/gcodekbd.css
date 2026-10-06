@@ -112,3 +112,11 @@
 .gk-field-row.gk-blank * { visibility: hidden !important; }
 /* Keep a full-height line box when a param button has no letter */
 .gk-field::before { content: '\200b'; }
+
+/* Value mode: only the punctuation and digit rows, and no Wizard or Send */
+.gk-numeric { display: none; }
+#gkPad.numeric .gk-numeric { display: block; }
+#gkPad.numeric .gk-letters,
+#gkPad.numeric .gk-wizard,
+#gkPad.numeric .gk-toggle,
+#gkPad.numeric .gk-send { display: none; }

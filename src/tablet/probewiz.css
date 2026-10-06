@@ -1,0 +1,147 @@
+/* Probe Wizard - colors follow numpad.css/gcodekbd.css.  Sits just below
+   the GCode keyboard, which opens on top of it to edit values. */
+#pwWrap {
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 998;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s;
+}
+#pwWrap.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+#pwPad {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1000px;
+  max-height: 100vh;
+  overflow-y: auto;
+  background: #eaeaea;
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  padding: 0 10px 10px 10px;
+  color: #000;
+  font-size: 22px;
+}
+
+.pw-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 -10px 10px -10px;
+  padding: 4px 10px;
+  background: #dadada;
+  font-size: 26px;
+}
+.pw-close {
+  font-size: 24px;
+  padding: 2px 14px;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+}
+
+.pw-selectors {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.pw-group {
+  display: flex;
+  gap: 5px;
+}
+
+.pw-btn {
+  font-size: 22px;
+  padding: 10px 14px;
+  color: #000;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+  touch-action: manipulation;
+}
+.pw-axis { min-width: 70px; }
+.pw-btn.pw-sel { background: #55aaff; color: #fff; }
+
+.pw-grid {
+  display: grid;
+  grid-template-columns: 90px repeat(4, 1fr);
+  gap: 5px 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.pw-header { font-size: 20px; }
+.pw-rowlabel { text-align: center; }
+.pw-value {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-size: 26px;
+  padding: 8px;
+  color: #000;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+  cursor: pointer;
+}
+.pw-value:disabled {
+  background: #d0d0d0;
+  color: #808080;
+  cursor: default;
+}
+
+.pw-action {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.pw-preview, .pw-result {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #c1c1c1;
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+.pw-preview {
+  flex: 1 1 0;
+  min-height: 7.5em;
+  font-size: 18px;
+}
+.pw-send {
+  width: 140px;
+  font-size: 26px;
+  background: #55ffd7;
+  border: 1px solid #c1c1c1;
+  touch-action: manipulation;
+}
+.pw-send:disabled {
+  background: #d0d0d0;
+  color: #808080;
+}
+
+.pw-result-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.pw-indicator {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  border: 1px solid #808080;
+  background: gray;
+}
+.pw-result {
+  min-height: 2.6em;
+  font-size: 22px;
+}

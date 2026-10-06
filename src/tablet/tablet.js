@@ -1153,6 +1153,7 @@ const menuHomeAll = () => { sendCommand('$H'); hideMenu(); }
 const menuHomeA = () => { sendCommand('$HA'); hideMenu(); }
 const menuSpindleOff = () => { sendCommand('M5'); hideMenu(); }
 const menuFullscreen = () => { toggleFullscreen(); hideMenu(); }
+const menuProbeWiz = () => { probewiz.show(); hideMenu(); }
 
 const requestModes = () => { sendCommand('$G'); }
 
@@ -1385,6 +1386,8 @@ const addListeners = () => {
     gcodekbd.init();
     gcodekbd.attach('mditext0');
     gcodekbd.attach('mditext1');
+
+    probewiz.init();
 
     numpad.init();
     for (let i = 0; i < tablet_n_axes; i++) {

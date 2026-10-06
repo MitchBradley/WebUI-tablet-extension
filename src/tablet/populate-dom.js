@@ -190,6 +190,7 @@ const attachApp = (container) => {
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
                         element('div', 'tablet-dropdown-menu', 'menu hidden', [
                             mi("Fullscreen", menuFullscreen, typeof toggleFullscreen === 'function'),
+                            mi("Probe Wiz", menuProbeWiz),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),

@@ -22,6 +22,7 @@ const gcodekbd = {
     hdisplay: null,  // edit line
     htoggle: null,   // the Wizard/ABC key
     target: null,    // the text box being edited
+    onDone: null,    // value mode: called after Close writes the value back
 
     letterRows: [
         ['.', '-', '+', '(', ')', '[', ']', '#', '=', '_', '<', '>'],
@@ -285,6 +286,12 @@ const gcodekbd = {
         gcodekbd.makeRows(wizard, gcodekbd.numberRows);
         pad.appendChild(wizard);
 
+        // Value mode (see openValue()) shows just these rows
+        const numeric = document.createElement('div');
+        numeric.className = 'gk-numeric';
+        gcodekbd.makeRows(numeric, gcodekbd.numberRows);
+        pad.appendChild(numeric);
+
         const bottom = document.createElement('div');
         bottom.className = 'gk-row';
         gcodekbd.bottomRow.forEach((key) => {
@@ -308,7 +315,11 @@ const gcodekbd = {
         switch (event.key) {
             case 'Enter':
                 event.preventDefault();
-                gcodekbd.send();
+                if (gcodekbd.onDone) {
+                    gcodekbd.close();
+                } else {
+                    gcodekbd.send();
+                }
                 break;
             case 'Escape':
                 event.preventDefault();
@@ -359,12 +370,27 @@ const gcodekbd = {
         d.setSelectionRange(d.value.length, d.value.length);
     },
 
+    // Value mode: edit a numeric field with just the punctuation and digit
+    // rows, Close, and cursor keys.  Close writes the value back into input
+    // and then calls onDone.
+    openValue: (input, onDone) => {
+        gcodekbd.onDone = onDone;
+        gcodekbd.hpad.classList.add('numeric');
+        gcodekbd.show.call(input);
+    },
+
     close: () => {
         if (gcodekbd.target) {
             gcodekbd.target.value = gcodekbd.hdisplay.value;
         }
         gcodekbd.hdisplay.blur();
         gcodekbd.hwrap.classList.remove('open');
+        gcodekbd.hpad.classList.remove('numeric');
+        const onDone = gcodekbd.onDone;
+        gcodekbd.onDone = null;
+        if (onDone) {
+            onDone();
+        }
     },
 
     send: () => {
