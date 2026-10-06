@@ -69,6 +69,18 @@ let currentPosition = { x: 0, y: 0, z: 0, g92x: 0, g92y: 0, g92z: 0, wcsx: 0, wc
 const set_current_position = (pos) => {
     currentPosition = pos;
 };
+// Distance and units modes, published by toolpath.js's setModal() for
+// #<_incremental>/#<_absolute>/#<_metric>/#<_imperial>
+let currentModal = { distance: 'G90', units: 'G21' };
+const set_current_modal = (modal) => {
+    currentModal = modal;
+};
+const modal_params = {
+    _incremental: () => currentModal.distance === 'G91',
+    _absolute:    () => currentModal.distance === 'G90',
+    _metric:      () => currentModal.units === 'G21',
+    _imperial:    () => currentModal.units === 'G20',
+};
 const abs_position_axis = { _abs_x: 'x', _abs_y: 'y', _abs_z: 'z' };
 const work_position_axis = { _x: 'x', _y: 'y', _z: 'z' };
 
@@ -84,6 +96,9 @@ const get_system_param = (name) => {
         const axis = work_position_axis[key];
         return currentPosition[axis];
     }
+    if (key in modal_params) {
+        return modal_params[key]() ? 1 : 0;
+    }
     return NaN;
 };
 
@@ -95,6 +110,7 @@ let user_params = new Map();
 // from a clean slate both times, instead of the draw pass inheriting
 // whatever the bbox pass left behind.
 const params_init = () => {
+    currentModal = { distance: 'G90', units: 'G21' };
     assignments = [];
     named_params.clear();
     user_params.clear();
@@ -251,6 +267,10 @@ const set_param = (param_ref, value) => {
 // word list came out with no Z at all).
 const read_number = (s, in_expression) => {
     let c = s.line[s.pos];
+    // End of line - e.g. when parsing resumes after a failed expression
+    if (c === undefined) {
+        return NaN;
+    }
     if (c == '#') {
         s.pos++;
         let param_ref = new ParamRef();

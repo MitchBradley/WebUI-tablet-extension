@@ -760,6 +760,8 @@ class Toolpath {
             ...this.modal,
             ...modal
         };
+        // Publish for #<_incremental> etc. - see parameters.js
+        set_current_modal(this.modal);
         return this.modal;
     }
     isMetricUnits() { // mm
