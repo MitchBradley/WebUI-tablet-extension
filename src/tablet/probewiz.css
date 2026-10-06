@@ -51,6 +51,8 @@
 
 .pw-selectors {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: space-between;
   margin-bottom: 10px;
 }
@@ -115,6 +117,9 @@
 .pw-preview {
   flex: 1 1 0;
   min-height: 7.5em;
+  /* A Bore sequence can be ~25 lines */
+  max-height: 12em;
+  overflow-y: auto;
   font-size: 18px;
 }
 .pw-send {

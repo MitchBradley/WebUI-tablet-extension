@@ -1,6 +1,6 @@
 // Probe Wizard, ported from the P4 tablet UI (FluidNC TabletGui's Probe
 // pane).  A modal overlay, opened from the menu, that builds and sends a
-// G38.2 probe sequence for one axis:
+// G38.2 probe sequence.  The Edge operation probes one axis:
 //
 // - Coordinate mode: G53 machine target, G91 relative distance, or G90
 //   absolute target.  In relative mode, the sign of Distance is the probe
@@ -12,6 +12,17 @@
 //   slowly for a more accurate touch.  The fast retract is what backs off
 //   the surface first, so it must be nonzero.  The thickness then applies
 //   to the slow probe only.
+//
+// The Bore operation finds the center of a hole or pocket in X, Y, or X then
+// Y, starting from somewhere inside it at probing depth.  For each axis it
+// probes the - wall, returns to the start, probes the + wall, and moves to
+// the midpoint, all in G-code using #5061/#5062 (the last probe position, in
+// machine coordinates), so a saved Bore probe runs on its own.  The midpoint
+// of any chord is the center in that axis, so starting off-center is fine,
+// and Y is then probed through the true center.  With the Slow row on, each
+// wall is re-probed slowly after backing off by Retract.  Zero WCS sets the
+// current work coordinate system's origin at the center.  Tip Dia is used
+// only to report the hole's size.
 //
 // The preview shows exactly the commands Send will issue.  If the sequence
 // changes the distance mode, it saves #<_incremental> first and restores
@@ -28,16 +39,27 @@
 // in hosts without it.
 const probewiz = {
     hwrap: null,
-    mode: 'Relative',   // 'Machine', 'Relative', or 'Absolute'
-    axis: 'X',
+    op: 'Edge',         // 'Edge' or 'Bore'
+    mode: 'Relative',   // Edge: 'Machine', 'Relative', or 'Absolute'
+    axis: 'X',          // Edge: 'X', 'Y', or 'Z'
+    boreAxes: 'XY',     // Bore: 'X', 'Y', or 'XY'
+    zeroWcs: false,     // Bore: zero the current WCS at the center
     slow: false,
     values: {
         feed: '100', dist: '25', retract: '2', thickness: '0',
         feed2: '50', dist2: '5', retract2: '2', thickness2: '0',
+        search: '10', tip: '0',   // Bore
     },
     inputs: {},          // the value fields, by the same keys as values
+    hops: {},
     hmodes: {},
+    hmodeGroup: null,
     haxes: {},
+    haxisGroup: null,
+    hboreAxes: {},
+    hboreGroup: null,
+    hzero: null,
+    hthicknessHeader: null,
     hslow: null,
     hdistHeader: null,
     hpreview: null,
@@ -62,9 +84,15 @@ const probewiz = {
     // Probe results still expected from the last Send - one per G38.2
     pending: 0,
     probedAxis: '',
+    // Bore: the wall each G38.2 of the last Send probes, e.g. 'X-', in
+    // order, and the latest machine position reported for each wall
+    touchTags: [],
+    touches: {},
 
+    ops: ['Edge', 'Bore'],
     modes: [['Machine', 'G53 mpos'], ['Relative', 'G91 rel'], ['Absolute', 'G90 abs']],
     axes: ['X', 'Y', 'Z'],
+    boreAxisChoices: ['X', 'Y', 'XY'],
 
     num: (key) => {
         const v = parseFloat(probewiz.values[key]);
@@ -79,6 +107,19 @@ const probewiz = {
     // Returns the command list Send would issue, or an empty list if the
     // values do not make sense yet.
     buildCommands: () => {
+        if (probewiz.outOfRange()) {
+            return [];
+        }
+        const cmds = probewiz.op === 'Bore' ? probewiz.buildBore() : probewiz.buildEdge();
+        // Restore the distance mode in effect when the sequence starts
+        if (cmds.some((cmd) => /\bG9[01]\b/.test(cmd))) {
+            cmds.unshift('#<saved_incremental>=#<_incremental>');
+            cmds.push('G[90+#<saved_incremental>]');
+        }
+        return cmds;
+    },
+
+    buildEdge: () => {
         const cmds = [];
         const mode = probewiz.mode;
         const relative = mode === 'Relative';
@@ -88,9 +129,6 @@ const probewiz = {
         // Only the magnitude says whether a retract is in use
         const retract = Math.abs(probewiz.num('retract'));
 
-        if (probewiz.outOfRange()) {
-            return cmds;
-        }
         // In relative mode dist is a signed delta, so only zero is invalid.
         // An absolute or machine target of 0 is a legitimate coordinate.
         if (feed <= 0 || (relative && dist === 0)) {
@@ -151,11 +189,53 @@ const probewiz = {
         } else {
             retractMove(dist, probewiz.num('retract'), false);
         }
+        return cmds;
+    },
 
-        // Restore the distance mode in effect when the sequence starts
-        if (cmds.some((cmd) => /\bG9[01]\b/.test(cmd))) {
-            cmds.unshift('#<saved_incremental>=#<_incremental>');
-            cmds.push('G[90+#<saved_incremental>]');
+    // Bore distances are magnitudes; the wall being probed gives the sign
+    buildBore: () => {
+        const cmds = [];
+        const feed = probewiz.num('feed');
+        const search = Math.abs(probewiz.num('search'));
+        const retract = Math.abs(probewiz.num('retract'));
+        const feed2 = probewiz.num('feed2');
+        const search2 = Math.abs(probewiz.num('dist2'));
+        if (feed <= 0 || search <= 0.001) {
+            return cmds;
+        }
+        if (probewiz.slow && (retract <= 0.001 || feed2 <= 0 || search2 <= 0.001)) {
+            return cmds;
+        }
+        const fmt = (v) => v.toFixed(3);
+
+        // Probes the wall in direction dir (-1 or 1), re-probing slowly if
+        // the Slow row is on
+        const touch = (axis, dir) => {
+            cmds.push(`G91 G38.2 ${axis}${fmt(dir * search)} F${feed.toFixed(0)}`);
+            if (probewiz.slow) {
+                cmds.push(`G91 G0 ${axis}${fmt(-dir * retract)}`);
+                cmds.push(`G91 G38.2 ${axis}${fmt(dir * search2)} F${feed2.toFixed(0)}`);
+            }
+        };
+
+        const axes = probewiz.boreAxes.split('');
+        axes.forEach((axis) => {
+            const a = axis.toLowerCase();
+            const probeParam = axis === 'X' ? '#5061' : '#5062';
+            const start = `#<bore_${a}0>`;
+            const minus = `#<bore_${a}m>`;
+            const plus = `#<bore_${a}p>`;
+            // Machine positions, so the G53 moves need no offset arithmetic
+            cmds.push(`${start}=#<_abs_${a}>`);
+            touch(axis, -1);
+            cmds.push(`${minus}=${probeParam}`);
+            cmds.push(`G53 G0 ${axis}${start}`);
+            touch(axis, 1);
+            cmds.push(`${plus}=${probeParam}`);
+            cmds.push(`G53 G0 ${axis}[[${minus}+${plus}]/2]`);
+        });
+        if (probewiz.zeroWcs) {
+            cmds.push(`G10 L20 P0 ${axes.map((axis) => axis + '0').join(' ')}`);
         }
         return cmds;
     },
@@ -166,10 +246,23 @@ const probewiz = {
         }
         // Every change to the settings comes through here
         probewiz.setFileMsg('');
+        const bore = probewiz.op === 'Bore';
         const relative = probewiz.mode === 'Relative';
+        const show = (elem, visible) => { elem.style.display = visible ? '' : 'none'; };
+        probewiz.ops.forEach((op) => probewiz.hops[op].classList.toggle('pw-sel', op === probewiz.op));
         probewiz.modes.forEach(([mode]) => probewiz.hmodes[mode].classList.toggle('pw-sel', mode === probewiz.mode));
         probewiz.axes.forEach((axis) => probewiz.haxes[axis].classList.toggle('pw-sel', axis === probewiz.axis));
-        probewiz.hdistHeader.textContent = relative ? 'Distance' : 'Target';
+        probewiz.boreAxisChoices.forEach((axes) => probewiz.hboreAxes[axes].classList.toggle('pw-sel', axes === probewiz.boreAxes));
+        probewiz.hzero.classList.toggle('pw-sel', probewiz.zeroWcs);
+        show(probewiz.hmodeGroup, !bore);
+        show(probewiz.haxisGroup, !bore);
+        show(probewiz.hboreGroup, bore);
+        probewiz.hdistHeader.textContent = bore ? 'Search' : relative ? 'Distance' : 'Target';
+        probewiz.hthicknessHeader.textContent = bore ? 'Tip Dia' : 'Thickness';
+        show(probewiz.inputs.dist, !bore);
+        show(probewiz.inputs.search, bore);
+        show(probewiz.inputs.thickness, !bore);
+        show(probewiz.inputs.tip, bore);
         probewiz.hslow.classList.toggle('pw-sel', probewiz.slow);
         ['feed2', 'dist2', 'retract2', 'thickness2'].forEach((key) => {
             probewiz.inputs[key].disabled = !probewiz.slow;
@@ -177,6 +270,15 @@ const probewiz = {
         // The fast thickness is not used when the slow probe runs; its
         // value is kept for when the slow probe is turned off again
         probewiz.inputs.thickness.disabled = probewiz.slow;
+        if (bore) {
+            // Retract only backs off before a slow re-probe, and the slow
+            // probe is followed by a G53 move rather than a retract
+            probewiz.inputs.retract.disabled = !probewiz.slow;
+            probewiz.inputs.retract2.disabled = true;
+            probewiz.inputs.thickness2.disabled = true;
+        } else {
+            probewiz.inputs.retract.disabled = false;
+        }
 
         const cmds = probewiz.buildCommands();
         probewiz.hsend.disabled = cmds.length === 0;
@@ -189,6 +291,8 @@ const probewiz = {
             probewiz.hpreview.textContent = `Error: values must be between -${probewiz.maxValue} and ${probewiz.maxValue}`;
         } else if (probewiz.slow && Math.abs(probewiz.num('retract')) <= 0.001) {
             probewiz.hpreview.textContent = 'Error: Retract is necessary between probing cycles';
+        } else if (bore) {
+            probewiz.hpreview.textContent = '(enter a valid feed rate/search distance)';
         } else {
             probewiz.hpreview.textContent = '(enter a valid feed rate/distance)';
         }
@@ -212,9 +316,16 @@ const probewiz = {
         }
         tabletClick();
         probewiz.setFileMsg('');
-        probewiz.probedAxis = probewiz.axis;
-        probewiz.pending = cmds.filter((cmd) => cmd.includes('G38.2')).length;
-        probewiz.setResult('gray', `Probing ${probewiz.axis}...`);
+        probewiz.probedAxis = probewiz.op === 'Bore' ? '' : probewiz.axis;
+        const probes = cmds.filter((cmd) => cmd.includes('G38.2'));
+        probewiz.pending = probes.length;
+        // e.g. "G91 G38.2 X-10.000 F100" -> 'X-'
+        probewiz.touchTags = probes.map((cmd) => {
+            const m = cmd.match(/G38\.2 ([XYZ])(-?)/);
+            return m ? m[1] + (m[2] || '+') : '';
+        });
+        probewiz.touches = {};
+        probewiz.setResult('gray', probewiz.op === 'Bore' ? `Probing bore ${probewiz.boreAxes}...` : `Probing ${probewiz.axis}...`);
         cmds.forEach((cmd) => sendCommand(cmd));
     },
 
@@ -226,6 +337,10 @@ const probewiz = {
             probewiz.probeFailed('Probe did not trigger');
             return;
         }
+        if (!probewiz.probedAxis) {
+            probewiz.boreResult(mpos);
+            return;
+        }
         probewiz.pending--;
         const value = mpos[probewiz.axes.indexOf(probewiz.probedAxis)];
         const where = value === undefined ? '' : `\n${probewiz.probedAxis}: ${value.toFixed(3)}`;
@@ -234,6 +349,34 @@ const probewiz = {
         } else {
             probewiz.setResult('green', `SUCCESS${where}`);
         }
+    },
+
+    // Records a Bore touch.  Later touches of the same wall (the slow
+    // re-probe) replace earlier ones.  After the last, shows the center and
+    // size per axis, in machine coordinates.
+    boreResult: (mpos) => {
+        const tag = probewiz.touchTags[probewiz.touchTags.length - probewiz.pending];
+        probewiz.pending--;
+        if (tag) {
+            probewiz.touches[tag] = mpos[probewiz.axes.indexOf(tag[0])];
+        }
+        if (probewiz.pending > 0) {
+            const total = probewiz.touchTags.length;
+            probewiz.setResult('gray', `Probing bore ${probewiz.boreAxes}... ${total - probewiz.pending} of ${total} touches`);
+            return;
+        }
+        const tip = Math.abs(probewiz.num('tip'));
+        const centers = [];
+        const sizes = [];
+        probewiz.boreAxes.split('').forEach((axis) => {
+            const m = probewiz.touches[axis + '-'];
+            const p = probewiz.touches[axis + '+'];
+            if (m !== undefined && p !== undefined) {
+                centers.push(`${axis} ${((m + p) / 2).toFixed(3)}`);
+                sizes.push(`${axis} ${(p - m + tip).toFixed(3)}`);
+            }
+        });
+        probewiz.setResult('green', `SUCCESS\nCenter (mpos) ${centers.join('  ')}\nSize ${sizes.join('  ')}`);
     },
 
     // Called from grbl.js on a failed probe, alarm, or reset while probes
@@ -265,11 +408,14 @@ const probewiz = {
     // e.g. "Fast Rate" or "Slow Target" - the row and the column header
     fieldLabel: (key) => {
         const row = key.endsWith('2') ? 'Slow' : 'Fast';
+        const bore = probewiz.op === 'Bore';
         const column = {
             feed: 'Rate',
-            dist: probewiz.mode === 'Relative' ? 'Distance' : 'Target',
+            dist: bore ? 'Search' : probewiz.mode === 'Relative' ? 'Distance' : 'Target',
+            search: 'Search',
             retract: 'Retract',
             thickness: 'Thickness',
+            tip: 'Tip Dia',
         }[key.replace(/2$/, '')];
         return `${row} ${column}`;
     },
@@ -303,7 +449,17 @@ const probewiz = {
         pad.appendChild(title);
 
         const selectors = el('div', 'pw-selectors');
+        const ops = el('div', 'pw-group');
+        ops.appendChild(el('span', 'pw-group-label', 'Probe'));
+        probewiz.ops.forEach((op) => {
+            probewiz.hops[op] = probewiz.button(ops, 'pw-btn', op, () => {
+                probewiz.op = op;
+                probewiz.update();
+            });
+        });
+        selectors.appendChild(ops);
         const modes = el('div', 'pw-group');
+        probewiz.hmodeGroup = modes;
         modes.appendChild(el('span', 'pw-group-label', 'Mode'));
         probewiz.modes.forEach(([mode, label]) => {
             probewiz.hmodes[mode] = probewiz.button(modes, 'pw-btn', label, () => {
@@ -313,6 +469,7 @@ const probewiz = {
         });
         selectors.appendChild(modes);
         const axes = el('div', 'pw-group');
+        probewiz.haxisGroup = axes;
         axes.appendChild(el('span', 'pw-group-label', 'Axis'));
         probewiz.axes.forEach((axis) => {
             probewiz.haxes[axis] = probewiz.button(axes, 'pw-btn pw-axis', axis, () => {
@@ -321,6 +478,20 @@ const probewiz = {
             });
         });
         selectors.appendChild(axes);
+        const boreGroup = el('div', 'pw-group');
+        probewiz.hboreGroup = boreGroup;
+        boreGroup.appendChild(el('span', 'pw-group-label', 'Axis'));
+        probewiz.boreAxisChoices.forEach((choice) => {
+            probewiz.hboreAxes[choice] = probewiz.button(boreGroup, 'pw-btn pw-axis', choice, () => {
+                probewiz.boreAxes = choice;
+                probewiz.update();
+            });
+        });
+        probewiz.hzero = probewiz.button(boreGroup, 'pw-btn pw-zero', 'Zero WCS', () => {
+            probewiz.zeroWcs = !probewiz.zeroWcs;
+            probewiz.update();
+        });
+        selectors.appendChild(boreGroup);
         pad.appendChild(selectors);
 
         const grid = el('div', 'pw-grid');
@@ -329,9 +500,12 @@ const probewiz = {
         probewiz.hdistHeader = el('div', 'pw-header', 'Distance');
         grid.appendChild(probewiz.hdistHeader);
         grid.appendChild(el('div', 'pw-header', 'Retract'));
-        grid.appendChild(el('div', 'pw-header', 'Thickness'));
+        probewiz.hthicknessHeader = el('div', 'pw-header', 'Thickness');
+        grid.appendChild(probewiz.hthicknessHeader);
         grid.appendChild(el('div', 'pw-rowlabel', 'Fast'));
-        ['feed', 'dist', 'retract', 'thickness'].forEach((key) => probewiz.valueField(grid, key));
+        // Bore's search and tip fields share the dist and thickness cells;
+        // update() shows one of each pair
+        ['feed', 'dist', 'search', 'retract', 'thickness', 'tip'].forEach((key) => probewiz.valueField(grid, key));
         probewiz.hslow = probewiz.button(grid, 'pw-btn pw-slow', 'Slow', () => {
             probewiz.slow = !probewiz.slow;
             probewiz.update();
@@ -394,6 +568,7 @@ const probewiz = {
         ['mode', 'axis', 'slow'],
         ['feed', 'dist', 'retract', 'thickness'],
         ['feed2', 'dist2', 'retract2', 'thickness2'],
+        ['op', 'bore', 'zero', 'search', 'tip'],
     ],
 
     makeHeader: () => probewiz.headerLines.map((keys) => {
@@ -401,6 +576,9 @@ const probewiz = {
             if (key === 'mode') return `mode=${probewiz.mode}`;
             if (key === 'axis') return `axis=${probewiz.axis}`;
             if (key === 'slow') return `slow=${probewiz.slow ? 1 : 0}`;
+            if (key === 'op') return `op=${probewiz.op}`;
+            if (key === 'bore') return `bore=${probewiz.boreAxes}`;
+            if (key === 'zero') return `zero=${probewiz.zeroWcs ? 1 : 0}`;
             return `${key}=${parseFloat(probewiz.num(key).toFixed(4))}`;
         });
         return `(probewiz ${pairs.join(' ')})`;
@@ -420,6 +598,8 @@ const probewiz = {
         if (!pairs.length) {
             return false;
         }
+        // Files saved before Bore existed have no op
+        probewiz.op = 'Edge';
         pairs.forEach((pair) => {
             const [key, value] = pair.split('=');
             if (key === 'mode') {
@@ -432,6 +612,16 @@ const probewiz = {
                 }
             } else if (key === 'slow') {
                 probewiz.slow = value === '1';
+            } else if (key === 'op') {
+                if (probewiz.ops.includes(value)) {
+                    probewiz.op = value;
+                }
+            } else if (key === 'bore') {
+                if (probewiz.boreAxisChoices.includes(value)) {
+                    probewiz.boreAxes = value;
+                }
+            } else if (key === 'zero') {
+                probewiz.zeroWcs = value === '1';
             } else if (key in probewiz.values && !isNaN(parseFloat(value))) {
                 probewiz.values[key] = value;
                 probewiz.inputs[key].value = value;
