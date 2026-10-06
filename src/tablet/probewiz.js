@@ -304,6 +304,7 @@ const probewiz = {
 
         const selectors = el('div', 'pw-selectors');
         const modes = el('div', 'pw-group');
+        modes.appendChild(el('span', 'pw-group-label', 'Mode'));
         probewiz.modes.forEach(([mode, label]) => {
             probewiz.hmodes[mode] = probewiz.button(modes, 'pw-btn', label, () => {
                 probewiz.mode = mode;
@@ -312,6 +313,7 @@ const probewiz = {
         });
         selectors.appendChild(modes);
         const axes = el('div', 'pw-group');
+        axes.appendChild(el('span', 'pw-group-label', 'Axis'));
         probewiz.axes.forEach((axis) => {
             probewiz.haxes[axis] = probewiz.button(axes, 'pw-btn pw-axis', axis, () => {
                 probewiz.axis = axis;
