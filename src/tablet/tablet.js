@@ -1136,7 +1136,17 @@ const selectFile = (event) => {
     }
 };
 
-const hideMenu = () => { toggleDropdown(); }
+// The menu's 'hidden' class alone decides whether it is shown (see
+// tablet.css).  Menu items hide it explicitly rather than toggling, so a
+// missed toggle cannot leave it showing after a selection.
+const hideMenu = () => { id('tablet-dropdown-menu').classList.add('hidden'); }
+
+// Tapping anywhere outside the menu and its button closes it
+const hideMenuOnOutsideTap = (event) => {
+    if (!id('dropdown').contains(event.target)) {
+        hideMenu();
+    }
+}
 const menuReset = () => { stopAndRecover(); hideMenu(); }
 const menuUnlock = () => { sendCommand('$X'); hideMenu(); }
 const menuHomeAll = () => { sendCommand('$H'); hideMenu(); }
@@ -1387,6 +1397,8 @@ const addListeners = () => {
     // to lose focus, in which case it does not receive keys.  The solution is to
     // delegate the event to window and then have the handler check to see if the
     // tablet is active.
+
+    document.addEventListener('pointerdown', hideMenuOnOutsideTap);
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);

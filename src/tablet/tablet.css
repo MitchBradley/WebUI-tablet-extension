@@ -236,3 +236,9 @@
   z-index: 1;
   user-select: none;
 }
+/* Show the menu whenever it lacks the hidden class, instead of relying on
+   the button's focus or the menu's hover state, which a touch screen does
+   not reliably clear.  tablet.js adds and removes the hidden class. */
+.dropdown #tablet-dropdown-menu {
+  display: block;
+}

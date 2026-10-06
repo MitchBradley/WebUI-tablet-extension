@@ -85,7 +85,7 @@ const button = (id, cssclass, content, title, click, value) => {
 const menubutton = (id, cssclass, content) => {
     const el = button(id, cssclass, content)
     el.tabindex = 0
-    el.onclick = hideMenu;
+    el.onclick = toggleDropdown;
     return el
 }
 
@@ -188,8 +188,8 @@ const attachApp = (container) => {
                     div('runtime', 'col-tablet col-1 info-button', "12:23"),
                     div('dropdown', 'dropdown  dropdown-right', [
                         menubutton('btn-dropdown', 'btn-tablet dropdown-toggle', "Menu"), // {"attributes":{"tabindex":"0"}}
-                        element('div', 'tablet-dropdown-menu', 'menu', [
-                            mi("Fullscreen", toggleFullscreen, typeof toggleFullscreen === 'function'),
+                        element('div', 'tablet-dropdown-menu', 'menu hidden', [
+                            mi("Fullscreen", menuFullscreen, typeof toggleFullscreen === 'function'),
                             mi("Homing", menuHomeAll),
                             mi("Home A", menuHomeA),
                             mi("Spindle Off", menuSpindleOff),
