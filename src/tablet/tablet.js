@@ -1384,8 +1384,8 @@ const addListeners = () => {
     id('mditext1').addEventListener('keyup', mdiEnterKey);
 
     gcodekbd.init();
-    gcodekbd.attach('mditext0');
-    gcodekbd.attach('mditext1');
+    gcodekbd.attach('mditext0', 'GCode');
+    gcodekbd.attach('mditext1', 'GCode');
 
     probewiz.init();
 

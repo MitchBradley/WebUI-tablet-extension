@@ -3,8 +3,9 @@
 // makes you keep switching between letter, number, and punctuation layers;
 // this one has a single fixed layout with everything GCode needs - letters,
 // digits, and the punctuation used by expressions and parameter references -
-// all visible at once.  Letters are upper case only, since case does not
-// matter in GCode.
+// all visible at once.  Letters are upper case, since case does not matter
+// in GCode; the Shift key switches them to lower case (until it is pressed
+// again) for comments and file names.
 //
 // Like the numpad, it is a modal overlay with its own edit line.  Tapping an
 // attached text box copies its contents into the edit line; Close copies the
@@ -20,16 +21,23 @@ const gcodekbd = {
     hwrap: null,     // dimmed full-screen wrapper
     hpad: null,      // the keyboard panel; class 'wizard' selects the wizard view
     hdisplay: null,  // edit line
+    hlabel: null,    // label to the left of the edit line
     htoggle: null,   // the Wizard/ABC key
     target: null,    // the text box being edited
     onDone: null,    // value mode: called after Close writes the value back
+    valueMode: null, // value mode: 'numeric' or 'text', also the pad's class
+    hstatus: null,   // value mode: messages from action buttons
+    hactions: null,  // value mode: holds the action buttons, in the bottom row
+    hclose: null,
+    actionButtons: [], // { button, label } for the current action buttons
+    onEdit: null,    // value mode: called when the edit line changes
 
     letterRows: [
         ['.', '-', '+', '(', ')', '[', ']', '#', '=', '_', '<', '>'],
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
         ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
         ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-        ['Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace'],
+        ['Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace'],
     ],
 
     // The letter keyboard's punctuation and digit rows, so they are in the
@@ -45,10 +53,12 @@ const gcodekbd = {
     // Keys whose label or action differs from the character they type
     special: {
         Backspace: { label: '&#9003;', css: 'gk-del', fn: () => gcodekbd.backspace() },
+        Shift:     { label: '&#8679;', css: 'gk-shift', fn: () => gcodekbd.setLowerCase(!gcodekbd.lowerCase) },
         Left:      { label: '&larr;',  css: 'gk-nav', fn: () => gcodekbd.moveCaret(-1) },
         Right:     { label: '&rarr;',  css: 'gk-nav', fn: () => gcodekbd.moveCaret(1) },
         Space:     { label: 'Space',   css: 'gk-space', fn: () => gcodekbd.insert(' ') },
-        Close:     { label: 'Close',   css: 'gk-close', fn: () => gcodekbd.close() },
+        // Labeled Cancel in value mode, where it discards the edit
+        Close:     { label: 'Close',   css: 'gk-close', fn: () => gcodekbd.valueMode ? gcodekbd.cancel() : gcodekbd.close() },
         Send:      { label: 'Send',    css: 'gk-send', fn: () => gcodekbd.send() },
         Toggle:    { label: 'Wizard',  css: 'gk-toggle', fn: () => gcodekbd.toggleWizard() },
     },
@@ -108,6 +118,10 @@ const gcodekbd = {
     hparamRow: null,
     hparamPairs: [], // { label, button } x 2
 
+    lowerCase: false,
+    hletters: [],    // the letter keys, relabeled by setLowerCase()
+    hshift: null,
+
     // fn, if given, overrides the key's default action
     makeKey: (parent, key, fn) => {
         const spec = gcodekbd.special[key];
@@ -118,9 +132,25 @@ const gcodekbd = {
         // key is pressed.
         button.addEventListener('pointerdown', (event) => event.preventDefault());
         button.addEventListener('mousedown', (event) => event.preventDefault());
+        if (!fn && !spec && /^[A-Z]$/.test(key)) {
+            // A letter key types its current label, which Shift changes
+            gcodekbd.hletters.push(button);
+            fn = () => gcodekbd.insert(button.textContent);
+        }
+        if (key === 'Shift') {
+            gcodekbd.hshift = button;
+        }
         button.addEventListener('click', fn || (spec ? spec.fn : () => gcodekbd.insert(key)));
         parent.appendChild(button);
         return button;
+    },
+
+    setLowerCase: (lower) => {
+        gcodekbd.lowerCase = lower;
+        gcodekbd.hletters.forEach((button) => {
+            button.textContent = lower ? button.textContent.toLowerCase() : button.textContent.toUpperCase();
+        });
+        gcodekbd.hshift.classList.toggle('gk-active', lower);
     },
 
     makeRows: (parent, rows) => {
@@ -267,8 +297,18 @@ const gcodekbd = {
         display.onfocus = inputFocused;
         display.onblur = inputBlurred;
         display.addEventListener('keydown', gcodekbd.keypr);
-        pad.appendChild(display);
+        display.addEventListener('input', () => gcodekbd.edited());
+        const displayRow = document.createElement('div');
+        displayRow.className = 'gk-display-row';
+        gcodekbd.hlabel = document.createElement('span');
+        gcodekbd.hlabel.className = 'gk-label';
+        displayRow.appendChild(gcodekbd.hlabel);
+        displayRow.appendChild(display);
+        pad.appendChild(displayRow);
         gcodekbd.hdisplay = display;
+        gcodekbd.hstatus = document.createElement('div');
+        gcodekbd.hstatus.className = 'gk-status';
+        pad.appendChild(gcodekbd.hstatus);
 
         const letters = document.createElement('div');
         letters.className = 'gk-letters';
@@ -299,7 +339,13 @@ const gcodekbd = {
             if (key === 'Toggle') {
                 gcodekbd.htoggle = button;
             }
+            if (key === 'Close') {
+                gcodekbd.hclose = button;
+            }
         });
+        gcodekbd.hactions = document.createElement('div');
+        gcodekbd.hactions.className = 'gk-actions';
+        bottom.appendChild(gcodekbd.hactions);
         pad.appendChild(bottom);
 
         document.body.appendChild(gcodekbd.hwrap);
@@ -315,15 +361,21 @@ const gcodekbd = {
         switch (event.key) {
             case 'Enter':
                 event.preventDefault();
-                if (gcodekbd.onDone) {
-                    gcodekbd.close();
+                if (gcodekbd.actionButtons.length === 1) {
+                    gcodekbd.actionButtons[0].button.click();
+                } else if (gcodekbd.actionButtons.length) {
+                    // Ambiguous with several actions; use the buttons
                 } else {
                     gcodekbd.send();
                 }
                 break;
             case 'Escape':
                 event.preventDefault();
-                gcodekbd.close();
+                if (gcodekbd.valueMode) {
+                    gcodekbd.cancel();
+                } else {
+                    gcodekbd.close();
+                }
                 break;
         }
     },
@@ -332,6 +384,27 @@ const gcodekbd = {
         const d = gcodekbd.hdisplay;
         d.setRangeText(text, d.selectionStart, d.selectionEnd, 'end');
         d.focus();
+        gcodekbd.edited();
+    },
+
+    // setRangeText() does not fire input events, so on-screen keys call
+    // this directly
+    edited: () => {
+        if (gcodekbd.onEdit) {
+            gcodekbd.onEdit();
+        }
+    },
+
+    setStatus: (text) => {
+        gcodekbd.hstatus.textContent = text;
+    },
+
+    // Restores the action buttons' original labels, e.g. after a caller
+    // relabeled one to ask for confirmation
+    resetActionLabels: () => {
+        gcodekbd.actionButtons.forEach(({ button, label }) => {
+            button.textContent = label;
+        });
     },
 
     backspace: () => {
@@ -344,6 +417,7 @@ const gcodekbd = {
             d.setRangeText('', start - 1, start, 'end');
         }
         d.focus();
+        gcodekbd.edited();
     },
 
     moveCaret: (delta) => {
@@ -354,43 +428,86 @@ const gcodekbd = {
     },
 
     // Make the text box at id targetId open this keyboard when tapped,
-    // instead of taking input directly.
-    attach: (targetId) => {
+    // instead of taking input directly.  label is shown left of the edit
+    // line.
+    attach: (targetId, label) => {
         const target = id(targetId);
         target.readOnly = true;
-        target.addEventListener('click', gcodekbd.show);
+        target.addEventListener('click', () => gcodekbd.show(target, label));
     },
 
-    show: function () {
-        gcodekbd.target = this;
+    show: (input, label) => {
+        gcodekbd.setLowerCase(false);
+        gcodekbd.target = input;
+        gcodekbd.hlabel.textContent = label || '';
         const d = gcodekbd.hdisplay;
-        d.value = this.value;
+        d.value = input.value;
         gcodekbd.hwrap.classList.add('open');
         d.focus();
         d.setSelectionRange(d.value.length, d.value.length);
     },
 
-    // Value mode: edit a numeric field with just the punctuation and digit
-    // rows, Close, and cursor keys.  Close writes the value back into input
-    // and then calls onDone.
-    openValue: (input, onDone) => {
+    // Value mode: edit a field rather than an MDI command.  mode 'numeric'
+    // shows just the punctuation and digit rows; 'text' shows the letter
+    // keyboard.  Neither has the Wizard or Send keys, and Close becomes
+    // Cancel, which discards the edit.  input only needs a value property.
+    //
+    // The bottom row ends with action buttons.  By default there is just Set
+    // (also Enter), which writes the value back into input and then calls
+    // onDone.  options.actions replaces that, so the keyboard can serve as
+    // a complete dialog: each is { label, fn }, and fn(value, button) is
+    // called when its button is pressed, typically ending with close() or
+    // setStatus().  options.onEdit is called whenever the edit line changes.
+    openValue: (input, label, onDone, mode = 'numeric', options = {}) => {
         gcodekbd.onDone = onDone;
-        gcodekbd.hpad.classList.add('numeric');
-        gcodekbd.show.call(input);
+        gcodekbd.valueMode = mode;
+        gcodekbd.onEdit = options.onEdit || null;
+        gcodekbd.hpad.classList.add(mode);
+        gcodekbd.setStatus('');
+        const actions = options.actions || [{ label: 'Set', fn: () => gcodekbd.close() }];
+        gcodekbd.actionButtons = actions.map(({ label, fn }) => {
+            const button = gcodekbd.makeKey(gcodekbd.hactions, label,
+                                            () => fn(gcodekbd.hdisplay.value, button));
+            button.classList.add('gk-action');
+            return { button, label };
+        });
+        gcodekbd.hpad.classList.add('actions');
+        gcodekbd.hclose.textContent = 'Cancel';
+        gcodekbd.show(input, label);
     },
 
+    // Writes the edit line back into the target and calls onDone
     close: () => {
         if (gcodekbd.target) {
             gcodekbd.target.value = gcodekbd.hdisplay.value;
         }
-        gcodekbd.hdisplay.blur();
-        gcodekbd.hwrap.classList.remove('open');
-        gcodekbd.hpad.classList.remove('numeric');
         const onDone = gcodekbd.onDone;
-        gcodekbd.onDone = null;
+        gcodekbd.dismiss();
         if (onDone) {
             onDone();
         }
+    },
+
+    // Value mode's Cancel: closes without writing back or calling onDone
+    cancel: () => {
+        gcodekbd.dismiss();
+    },
+
+    dismiss: () => {
+        gcodekbd.hdisplay.blur();
+        gcodekbd.hwrap.classList.remove('open');
+        if (gcodekbd.valueMode) {
+            gcodekbd.hpad.classList.remove(gcodekbd.valueMode);
+            gcodekbd.valueMode = null;
+        }
+        gcodekbd.hpad.classList.remove('actions');
+        gcodekbd.hactions.innerHTML = '';
+        gcodekbd.actionButtons = [];
+        gcodekbd.hclose.textContent = 'Close';
+        gcodekbd.onEdit = null;
+        gcodekbd.setStatus('');
+        gcodekbd.onDone = null;
+        gcodekbd.target = null;
     },
 
     send: () => {

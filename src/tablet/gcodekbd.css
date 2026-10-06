@@ -120,3 +120,45 @@
 #gkPad.numeric .gk-wizard,
 #gkPad.numeric .gk-toggle,
 #gkPad.numeric .gk-send { display: none; }
+
+/* Text value mode: the letter keyboard, even if the wizard view was last
+   used, and no Wizard or Send */
+#gkPad.text .gk-letters { display: block; }
+#gkPad.text .gk-wizard,
+#gkPad.text .gk-toggle,
+#gkPad.text .gk-send { display: none; }
+
+.gk-shift { flex-grow: 1.5; background: #e7f3ff; }
+.gk-shift.gk-active { background: #55aaff; color: #fff; }
+
+/* Label left of the edit line, naming what is being entered */
+.gk-display-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.gk-display-row #gkDisplay {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.gk-label {
+  font-size: 26px;
+  color: #000;
+  white-space: nowrap;
+}
+.gk-label:empty { display: none; }
+
+/* Value mode with action buttons (e.g. Save Flash/Save SD), which sit in
+   the bottom row in place of Wizard and Send */
+.gk-actions { display: contents; }
+.gk-action { flex-grow: 2; background: #55ffd7; }
+#gkPad.actions .gk-toggle,
+#gkPad.actions .gk-send { display: none; }
+.gk-status {
+  margin: -4px 0 10px 0;
+  font-size: 22px;
+  color: #a00000;
+}
+.gk-status:empty { display: none; }

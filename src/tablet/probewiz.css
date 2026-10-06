@@ -145,3 +145,64 @@
   min-height: 2.6em;
   font-size: 22px;
 }
+
+/* Send above Save/Load, to the right of the preview */
+.pw-action-buttons .pw-btn:disabled { color: #808080; }
+.pw-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 140px;
+}
+.pw-action-buttons .pw-send { flex: 1 1 auto; width: 100%; }
+
+/* Load dialog, floating over the wizard */
+.pw-dialog {
+  display: none;
+  position: absolute;
+  top: 60px;
+  left: 40px;
+  right: 40px;
+  padding: 0 14px 14px 14px;
+  background: #f4f4f4;
+  border: 2px solid #808080;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1;
+}
+.pw-dialog.open { display: block; }
+.pw-dialog-title {
+  margin: 0 -14px 12px -14px;
+  padding: 4px 14px;
+  background: #dadada;
+  font-size: 26px;
+}
+.pw-dialog-status {
+  min-height: 1.4em;
+  margin-bottom: 10px;
+  color: #a00000;
+}
+.pw-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.pw-load-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+.pw-load-item {
+  text-align: left;
+  font-family: monospace;
+}
+
+/* "Saved/Loaded <file>", at the right of the PROBE RESULT row, under Load */
+.pw-file-msg {
+  margin-left: auto;
+  font-size: 18px;
+  font-family: monospace;
+  color: #006000;
+}
