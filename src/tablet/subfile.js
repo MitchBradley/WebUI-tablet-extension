@@ -29,12 +29,11 @@ let subFileCache = new Map();
 const PUSH_JOB_SCOPE = { pushJobScope: true };
 const POP_JOB_SCOPE = { popJobScope: true };
 
-// fileRead()/FILE_VOLUME_SD/FILE_VOLUME_FLASH are host-provided globals
-// (see www/js/filetransport.js) -- established elsewhere in this app for
-// the same purpose (e.g. interface.js's files_downloadFile()), but only in
-// the webui2 (ESP3D-WEBUI) integration today. webui3's interfase.js has no
-// equivalent yet, so $.../run= is a no-op there for now (logged, not
-// thrown) rather than a hard dependency.
+// fileRead() is host-provided: www/js/filetransport.js in webui2, and
+// webui3/interfase.js's equivalent built on the extension download
+// message. FILE_VOLUME_SD/FILE_VOLUME_FLASH exist only in webui2, so they
+// are only used behind typeof checks. If a host has no fileRead(),
+// $.../run= is a no-op (logged, not thrown) rather than a hard dependency.
 const fileReadAsync = (volume, path) => new Promise((resolve, reject) => {
     if (typeof fileRead !== 'function') {
         reject(new Error('fileRead is not available in this WebUI'));
@@ -69,7 +68,7 @@ const matchSubFileRun = (strippedLine) => {
 // canonPath() itself recognizes (it wants "littlefs", or the "localfs"/
 // "spiffs" aliases) -- so map to that separately when qualifying the path
 // for the actual read.
-const qualifySubFilePath = (volume, path) => '/' + (volume === FILE_VOLUME_SD ? 'sd' : 'littlefs') + path;
+const qualifySubFilePath = (volume, path) => '/' + (volume === 'sd' ? 'sd' : 'littlefs') + path;
 
 const fetchSubFileLines = async (volume, name) => {
     const path = name.startsWith('/') ? name : '/' + name;
